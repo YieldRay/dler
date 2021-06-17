@@ -1,23 +1,23 @@
 {
-  "name": "dler",
-  "version": "1.0.0",
-  "description": "A simple download function, which needs only one dependency node-fetch, and is based on Promise.",
-  "main": "./lib/index.js",
-  "dependencies": {
-    "node-fetch": "^2.6.0"
-  },
-  "devDependencies": {},
-  "scripts": {
-    "test": "cd test && node test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Crazy-White/dler.git"
-  },
-  "author": "CrazyWhite",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/Crazy-White/dler/issues"
-  },
-  "homepage": "https://github.com/Crazy-White/dler#readme"
+    "name": "dler",
+    "version": "1.0.0",
+    "description": "A simple download function, which needs only one dependency node-fetch, and is based on Promise.",
+    "main": "./lib/index.js",
+    "dependencies": {
+        "node-fetch": "^2.6.1"
+    },
+    "devDependencies": {},
+    "scripts": {
+        "test": "cd test && node test"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/Crazy-White/dler.git"
+    },
+    "author": "CrazyWhite",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/Crazy-White/dler/issues"
+    },
+    "homepage": "https://github.com/Crazy-White/dler#readme"
 }
