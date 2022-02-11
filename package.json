@@ -1,23 +1,27 @@
 {
     "name": "dler",
-    "version": "1.0.0",
+    "type": "module",
+    "version": "1.1.0",
     "description": "A simple download function, which needs only one dependency node-fetch, and is based on Promise.",
-    "main": "./lib/index.js",
-    "dependencies": {
-        "node-fetch": "^2.6.1"
-    },
-    "devDependencies": {},
+    "main": "./lib/dler.js",
     "scripts": {
+        "build": "npx prettier --write ./src && npx tsc",
         "test": "cd test && node test"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Crazy-White/dler.git"
+        "url": "git+https://github.com/YieldRay/dler.git"
     },
-    "author": "CrazyWhite",
+    "author": "YieldRay",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/Crazy-White/dler/issues"
+        "url": "https://github.com/YieldRay/dler/issues"
     },
-    "homepage": "https://github.com/Crazy-White/dler#readme"
+    "homepage": "https://github.com/YieldRay/dler#readme",
+    "dependencies": {
+        "node-fetch": "^3.2.0"
+    },
+    "devDependencies": {
+        "@types/node": "^17.0.17"
+    }
 }
