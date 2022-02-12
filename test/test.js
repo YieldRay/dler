@@ -1,6 +1,10 @@
 import download from '../lib/dler.js';
 
-download('https://api.ip.sb/ip', {}, '../tmp/')
+download('https://api.ip.sb/ip', '../tmp/')
+    .then(path => console.log('File save to: ' + path))
+    .catch(console.log);
+
+download('https://api.ip.sb/ip', '../tmp/ipaddress.txt')
     .then(path => console.log('File save to: ' + path))
     .catch(console.log);
 
