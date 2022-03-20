@@ -1,7 +1,7 @@
 {
     "name": "dler",
     "type": "module",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "A simple download function, which needs only one dependency node-fetch, and is based on Promise.",
     "main": "./lib/dler.js",
     "types": "./lib/dler.d.ts",
