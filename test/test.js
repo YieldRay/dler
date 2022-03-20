@@ -9,7 +9,7 @@ download('https://api.ip.sb/ip', '../tmp/ipaddress.txt')
     .catch(console.log);
 
 download(
-    'https://i.pximg.net/img-original/img/2013/07/27/00/32/38/37339355_p0.jpg',
+    'https://i.pximg.net/img-original/img/2013/07/27/00/32/38/37339355_p0.jpg'.replace('i.pximg.net', 'pximg.deno.dev'),
     {
         headers: {
             Referer: 'https://www.pixiv.net/',

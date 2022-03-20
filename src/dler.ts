@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
-import fs from 'fs';
-import path from 'path';
+import { promises as fs, constants, createWriteStream, ReadStream } from 'fs';
+import { basename, dirname, resolve } from 'path';
 import { promisify } from 'util';
 import { pipeline } from 'stream';
 const streamPipeline = promisify(pipeline);
@@ -16,33 +16,29 @@ async function download(url: RequestInfo, options?: RequestInit | string, filePa
     } else {
         // (url, options=options, filePath?)
         if (filePath?.endsWith('/')) {
-            filePath += path.basename(new URL(typeof url === 'string' ? url : url.url).pathname);
-        } else filePath = path.basename(new URL(typeof url === 'string' ? url : url.url).pathname);
+            filePath += basename(new URL(typeof url === 'string' ? url : url.url).pathname);
+        } else filePath = basename(new URL(typeof url === 'string' ? url : url.url).pathname);
     }
 
     if (typeof filePath === 'string') {
         // (url, options, filePath)
         if (filePath.endsWith('/')) {
-            filePath += path.basename(new URL(typeof url === 'string' ? url : url.url).pathname);
+            filePath += basename(new URL(typeof url === 'string' ? url : url.url).pathname);
         }
     }
 
-    const dirName = path.dirname(filePath);
-
+    const dirName = dirname(filePath);
     try {
-        if (!fs.existsSync(dirName)) {
-            fs.mkdirSync(dirName);
-        }
-    } catch (err) {
-        throw err;
+        await fs.access(dirName, constants.R_OK | constants.W_OK);
+    } catch (_) {
+        await fs.mkdir(dirName, { recursive: true });
     }
 
-    const response = await (fetch as (url: RequestInfo, init?: RequestInit) => Promise<Response>)(url, options);
+    const response = await fetch(url, options);
 
     if (response.ok) {
-        // use 'any': Type 'ReadableStream<Uint8Array>' does not satisfy the constraint 'PipelineSource<any>'
-        await streamPipeline<any, fs.WriteStream>(response.body, fs.createWriteStream(filePath));
-        return path.resolve(filePath);
+        await streamPipeline(response.body as unknown as ReadStream, createWriteStream(filePath));
+        return resolve(filePath);
     } else {
         throw new Error(`unexpected response ${response.statusText}`);
     }

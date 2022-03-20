@@ -2,7 +2,7 @@
 
 [![](https://badgen.net/packagephobia/install/dler)](https://packagephobia.com/result?p=dler)
 [![](https://img.shields.io/npm/v/dler)](https://www.npmjs.com/package/dler)  
-A simple download function, which needs only one dependency (`node-fetch`) , and is based on Promise.
+A simple download function, which needs only one dependency (`node-fetch@2`) , and is based on Promise.
 
 ## Installation
 
