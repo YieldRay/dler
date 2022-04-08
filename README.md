@@ -14,6 +14,8 @@ $ npm install dler
 
 ```js
 import download from 'dler';
+// or
+const download = require("dler");
 
 const url = 'https://api.ip.sb/ip';
 const options = {
@@ -21,12 +23,13 @@ const options = {
     onProgress: (receivedLength, totalLength) => {
         console.log((100 * (receivedLength / totalLength)).toFixed(2) + '%');
     },
-    /*......*/
+    onReady: (resp, saveAs) => console.log(`Downloading ${resp.url} to ${saveAs}`),
+    /* other options in RequestInit */
 };
 
 
 download(url[, options]).then(path => {
-    console.log(`file saved to ${path}`);
+    console.log(`File saved to ${path}`);
 });
 
 
@@ -40,8 +43,9 @@ interface DlerInit extends RequestInit {
     // we use lowerCamelCase to avoid naming conflicts
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
     // if no content-length is provided, totalLength get 0
+    onReady?: (resp?: Response, saveAs?: string) => void;
+    // start to save file to the disk
 }
-
 ```
 
 ## Example
