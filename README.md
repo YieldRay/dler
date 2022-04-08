@@ -36,7 +36,7 @@ const path = await download(url [,options]);
 // options should fit DlerInit
 interface DlerInit extends RequestInit {
     filePath?: string;
-    userTimeout?: number;
+    abortTimeout?: number;
     // we use lowerCamelCase to avoid naming conflicts
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
     // if no content-length is provided, totalLength get 0

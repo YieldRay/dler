@@ -4,7 +4,7 @@ import { basename, dirname, resolve } from 'path';
 
 interface DlerInit extends RequestInit {
     filePath?: string;
-    userTimeout?: number;
+    abortTimeout?: number;
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
 }
 
@@ -13,12 +13,12 @@ async function download(input: RequestInfo, init: DlerInit): Promise<string>;
 async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
     const options = init || {};
     let { filePath, onProgress } = options;
-    if (!options.signal && options.userTimeout && options.userTimeout > 0) {
+    if (!options.signal && options.abortTimeout && options.abortTimeout > 0) {
         const controller = new AbortController();
         options.signal = controller.signal;
         setTimeout(() => {
             controller.abort();
-        }, options.userTimeout);
+        }, options.abortTimeout);
     }
     const response = await fetch(input, init);
     const { url } = response;
