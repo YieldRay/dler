@@ -1,43 +1,64 @@
-import fetch from 'node-fetch';
-import { promises as fs, constants, createWriteStream, ReadStream } from 'fs';
+import fetch, { RequestInfo, RequestInit } from 'node-fetch';
+import { promises as fs, constants, createWriteStream } from 'fs';
 import { basename, dirname, resolve } from 'path';
-import { promisify } from 'util';
-import { pipeline } from 'stream';
-const streamPipeline = promisify(pipeline);
-async function download(url: RequestInfo): Promise<string>;
-async function download(url: RequestInfo, options: RequestInit): Promise<string>;
-async function download(url: RequestInfo, filePath: string): Promise<string>;
-async function download(url: RequestInfo, options: RequestInit, filePath: string): Promise<string>;
-async function download(url: RequestInfo, options?: RequestInit | string, filePath?: string): Promise<string> {
-    if (typeof options === 'string') {
-        // (url, options=filePath)
-        filePath = options;
-        options = {};
-    } else {
-        // (url, options=options, filePath?)
-        if (filePath?.endsWith('/')) {
-            filePath += basename(new URL(typeof url === 'string' ? url : url.url).pathname);
-        } else filePath = basename(new URL(typeof url === 'string' ? url : url.url).pathname);
-    }
 
-    if (typeof filePath === 'string') {
-        // (url, options, filePath)
+interface DlerInit extends RequestInit {
+    filePath?: string;
+    userTimeout?: number;
+    onProgress?: (receivedLength?: number, totalLength?: number) => void;
+}
+
+async function download(input: RequestInfo): Promise<string>;
+async function download(input: RequestInfo, init: DlerInit): Promise<string>;
+async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
+    const options = init || {};
+    let { filePath, onProgress } = options;
+    if (!options.signal && options.userTimeout && options.userTimeout > 0) {
+        const controller = new AbortController();
+        options.signal = controller.signal;
+        setTimeout(() => {
+            controller.abort();
+        }, options.userTimeout);
+    }
+    const response = await fetch(input, init);
+    const { url } = response;
+
+    if (filePath) {
         if (filePath.endsWith('/')) {
-            filePath += basename(new URL(typeof url === 'string' ? url : url.url).pathname);
+            filePath += basename(new URL(url).pathname);
         }
+    } else {
+        filePath = basename(new URL(url).pathname);
     }
-
-    const dirName = dirname(filePath);
-    try {
-        await fs.access(dirName, constants.R_OK | constants.W_OK);
-    } catch (_) {
-        await fs.mkdir(dirName, { recursive: true });
-    }
-
-    const response = await fetch(url, options);
 
     if (response.ok) {
-        await streamPipeline(response.body as unknown as ReadStream, createWriteStream(filePath));
+        let contentLength = response.headers.get('content-length');
+        const totalLength = contentLength ? parseInt(contentLength, 10) : 0;
+        let receivedLength = 0;
+        // TODO: support resume download
+        const dirName = dirname(filePath);
+        try {
+            await fs.access(dirName, constants.R_OK | constants.W_OK);
+        } catch (_) {
+            await fs.mkdir(dirName, { recursive: true });
+        }
+        const writeFile = createWriteStream(filePath);
+        response.body.on('data', chunk => {
+            writeFile.write(chunk);
+            if (typeof onProgress === 'function') {
+                receivedLength += chunk.length;
+                onProgress(receivedLength, totalLength);
+            }
+        });
+        await new Promise<void>((rs, rj) => {
+            response.body.on('error', err => {
+                rj(err);
+            });
+            response.body.on('end', () => {
+                writeFile.end();
+                rs();
+            });
+        });
         return resolve(filePath);
     } else {
         throw new Error(`unexpected response ${response.statusText}`);

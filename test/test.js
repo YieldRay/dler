@@ -1,22 +1,24 @@
 import download from '../lib/dler.js';
 
-download('https://api.ip.sb/ip', '../tmp/')
-    .then(path => console.log('File save to: ' + path))
-    .catch(console.log);
+const filePath1 = await download('https://api.ip.sb/ip', { filePath: '../tmp/' });
+console.log(filePath1);
 
-download('https://api.ip.sb/ip', '../tmp/ipaddress.txt')
-    .then(path => console.log('File save to: ' + path))
-    .catch(console.log);
+const filePath2 = await download('https://api.ip.sb/ip', { filePath: '../tmp/ipaddress.txt' });
+console.log(filePath2);
 
-download(
-    'https://i.pximg.net/img-original/img/2013/07/27/00/32/38/37339355_p0.jpg'.replace('i.pximg.net', 'pximg.deno.dev'),
-    {
-        headers: {
-            Referer: 'https://www.pixiv.net/',
-            'User-Agent': 'PixivIOSApp/6.7.1 (iOS 10.3.1; iPhone8,1)',
-        },
+download('https://i.pximg.net/img-original/img/2013/07/27/00/32/38/37339355_p0.jpg'.replace('i.pximg.net', 'pximg.deno.dev'), {
+    headers: {
+        Referer: 'https://www.pixiv.net/',
+        'User-Agent': 'PixivIOSApp/6.7.1 (iOS 10.3.1; iPhone8,1)',
     },
-    '../tmp/',
-)
-    .then(path => console.log('File save to: ' + path))
-    .catch(console.log);
+    filePath: '../tmp/',
+    onProgress: (receivedLength, totalLength) => {
+        console.log((100 * (receivedLength / totalLength)).toFixed(2) + '%');
+        console.log(`${receivedLength} / ${totalLength}`);
+    },
+    userTimeout: 2000,
+})
+    .then(console.info)
+    .catch(e => {
+        console.error(e);
+    });

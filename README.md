@@ -14,15 +14,34 @@ $ npm install dler
 
 ```js
 import download from 'dler';
+
 const url = 'https://api.ip.sb/ip';
 const options = {
+    filePath: './ipinfo.txt',
+    onProgress: (receivedLength, totalLength) => {
+        console.log((100 * (receivedLength / totalLength)).toFixed(2) + '%');
+    },
     /*......*/
-}; // optional object, same as the init in fetch(url: RequestInfo, init?: RequestInit | undefined): Promise<Response>
-const filePath = './ipinfo.txt'; // optional string, if not set, use basename of url
-download(url [,options [,filePath]])
-.then(path=>{
+};
+
+
+download(url[, options]).then(path => {
     console.log(`file saved to ${path}`);
-})
+});
+
+
+// or use async/await
+const path = await download(url [,options]);
+
+// options should fit DlerInit
+interface DlerInit extends RequestInit {
+    filePath?: string;
+    userTimeout?: number;
+    // we use lowerCamelCase to avoid naming conflicts
+    onProgress?: (receivedLength?: number, totalLength?: number) => void;
+    // if no content-length is provided, totalLength get 0
+}
+
 ```
 
 ## Example
