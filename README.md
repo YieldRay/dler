@@ -20,6 +20,7 @@ const download = require("dler");
 const url = 'https://api.ip.sb/ip';
 const options = {
     filePath: './ipinfo.txt',
+    // or filePath: 'dirname/' for saving as ./dirname/ip
     onProgress: (receivedLength, totalLength) => {
         console.log((100 * (receivedLength / totalLength)).toFixed(2) + '%');
     },
@@ -39,12 +40,14 @@ const path = await download(url [,options]);
 // options should fit DlerInit
 interface DlerInit extends RequestInit {
     filePath?: string;
+    // if this is not provided or a folder name is provided, basename of the requested URL will be used
     abortTimeout?: number;
     // we use lowerCamelCase to avoid naming conflicts
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
     // if no content-length is provided, totalLength get 0
-    onReady?: (resp?: Response, saveAs?: string) => void;
-    // start to save file to the disk
+    onReady?: (resp?: Response, saveAs?: string) => void | string;
+    // callback when start to save file to the disk, if a string is given
+    // file will saved as provided name, notice that this name will be the final path directly
 }
 ```
 

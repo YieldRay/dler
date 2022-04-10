@@ -6,6 +6,14 @@ console.log(filePath1);
 const filePath2 = await download('https://api.ip.sb/ip', { filePath: '../tmp/ipaddress.txt' });
 console.log(filePath2);
 
+const filePath3 = await download('https://api.ip.sb/ip', {
+    filePath: '../tmp/ipaddress.txt',
+    onReady: (resp, saveAs) => {
+        return '../tmp/newPath.txt';
+    },
+});
+console.log(filePath3);
+
 download('https://i.pximg.net/img-original/img/2013/07/27/00/32/38/37339355_p0.jpg'.replace('i.pximg.net', 'pximg.deno.dev'), {
     headers: {
         Referer: 'https://www.pixiv.net/',

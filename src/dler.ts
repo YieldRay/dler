@@ -6,7 +6,22 @@ interface DlerInit extends RequestInit {
     filePath?: string;
     abortTimeout?: number;
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
-    onReady?: (resp?: Response, saveAs?: string) => void;
+    onReady?: (resp?: Response, saveAs?: string) => void | string;
+}
+
+function resolveFilePath(filePath: string | void, url: string): string {
+    let rt: string;
+    if (filePath) {
+        if (filePath.endsWith('/') || filePath.endsWith('\\')) {
+            rt = filePath + basename(new URL(url).pathname);
+        } else {
+            rt = filePath;
+        }
+    } else {
+        rt = basename(new URL(url).pathname);
+    }
+    if (!rt) throw new Error('Unable to determine file name');
+    return rt;
 }
 
 async function download(input: RequestInfo): Promise<string>;
@@ -15,6 +30,7 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
     const options = init || {};
     let { filePath } = options;
     if (options.abortTimeout && options.abortTimeout > 0) {
+        // ! OPTIONS - abortTimeout
         if (options.signal) throw new Error('Cannot use both abortTimeout and signal');
         const controller = new AbortController();
         options.signal = controller.signal;
@@ -23,17 +39,17 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
         }, options.abortTimeout);
     }
     const response = await fetch(input, init);
-    const { url } = response;
+    filePath = resolveFilePath(filePath, response.url);
 
-    if (filePath) {
-        if (filePath.endsWith('/')) {
-            filePath += basename(new URL(url).pathname);
+    if (typeof options.onReady === 'function') {
+        // ! OPTIONS - onReady
+        const reset = options.onReady(response, filePath);
+        if (typeof reset === 'string') {
+            // ! OPTIONS - onReady - reset file path by given path
+            if (reset.endsWith('/') || reset.endsWith('\\') || basename(reset).length === 0) throw new Error('Please set file name');
+            filePath = reset;
         }
-    } else {
-        filePath = basename(new URL(url).pathname);
     }
-    if (!filePath) throw new Error('Unable to determine file name');
-    typeof options.onReady === 'function' && options.onReady(response, filePath);
 
     if (response.ok) {
         let contentLength = response.headers.get('content-length');
@@ -49,6 +65,7 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
         response.body.on('data', chunk => {
             writeFile.write(chunk);
             if (typeof options.onProgress === 'function') {
+                // ! OPTIONS - onProgress
                 receivedLength += chunk.length;
                 options.onProgress(receivedLength, totalLength);
             }
