@@ -25,7 +25,7 @@ download('https://i.pximg.net/img-original/img/2013/07/27/00/32/38/37339355_p0.j
         console.log(`${receivedLength} / ${totalLength}`);
     },
     onReady: (resp, saveAs) => console.log(`Downloading ${resp.url} to ${saveAs}`),
-    abortTimeout: 2000,
+    maxDuration: 2000,
 })
     .then(console.info)
     .catch(e => {

@@ -1,10 +1,10 @@
 import fetch, { RequestInfo, RequestInit, Response } from 'node-fetch';
 import { promises as fs, constants, createWriteStream } from 'fs';
-import { basename, dirname, resolve } from 'path';
+import { basename, dirname, resolve, normalize } from 'path';
 
 interface DlerInit extends RequestInit {
     filePath?: string;
-    abortTimeout?: number;
+    maxDuration?: number;
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
     onReady?: (resp?: Response, saveAs?: string) => void | string;
 }
@@ -17,6 +17,7 @@ function resolveFilePath(filePath: string | void, url: string): string {
         } else {
             rt = filePath;
         }
+        rt = normalize(rt);
     } else {
         rt = basename(new URL(url).pathname);
     }
@@ -29,14 +30,14 @@ async function download(input: RequestInfo, init: DlerInit): Promise<string>;
 async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
     const options = init || {};
     let { filePath } = options;
-    if (options.abortTimeout && options.abortTimeout > 0) {
-        // ! OPTIONS - abortTimeout
-        if (options.signal) throw new Error('Cannot use both abortTimeout and signal');
+    if (options.maxDuration && options.maxDuration > 0) {
+        // ! OPTIONS - maxDuration
+        if (options.signal) throw new Error('Cannot use both maxDuration and signal');
         const controller = new AbortController();
         options.signal = controller.signal;
         setTimeout(() => {
             controller.abort();
-        }, options.abortTimeout);
+        }, options.maxDuration);
     }
     const response = await fetch(input, init);
     filePath = resolveFilePath(filePath, response.url);
@@ -71,9 +72,7 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
             }
         });
         await new Promise<void>((rs, rj) => {
-            response.body.on('error', err => {
-                rj(err);
-            });
+            response.body.on('error', err => rj(err));
             response.body.on('end', () => {
                 writeFile.end();
                 rs();

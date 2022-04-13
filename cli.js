@@ -1,12 +1,14 @@
-const download = require('../lib/dler.js');
+#!/usr/bin/env node
+const download = require('./lib/dler.js');
 const args = process.argv.slice(2);
 if (args.length < 1) {
-    console.log('Usage: dler <saveAs> <url>');
+    console.log('Usage: dler <url> <saveAs>');
     process.exit(1);
 }
 
-const url = args[args.length - 1];
-const saveAs = args[0] === url ? '' : args[0];
+const url = args[0];
+const saveAs = args[args.length - 1] === url ? '' : args[args.length - 1];
+
 if (new RegExp('^https?://').test(url)) {
     download(url, {
         filePath: saveAs,

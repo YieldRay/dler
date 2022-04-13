@@ -2,7 +2,7 @@
 
 [![](https://badgen.net/packagephobia/install/dler)](https://packagephobia.com/result?p=dler)
 [![](https://img.shields.io/npm/v/dler)](https://www.npmjs.com/package/dler)  
-A simple download function, which needs only one dependency (`node-fetch@2`) , and is based on Promise.
+A simple download function, which only requires `node-fetch@2`, and is based on Promise.
 
 ## Installation
 
@@ -35,13 +35,13 @@ download(url[, options]).then(path => {
 
 
 // or use async/await
-const path = await download(url [,options]);
+const absolutePath = await download(url [,options]);
 
 // options should fit DlerInit
 interface DlerInit extends RequestInit {
     filePath?: string;
     // if this is not provided or a folder name is provided, basename of the requested URL will be used
-    abortTimeout?: number;
+    maxDuration?: number;
     // we use lowerCamelCase to avoid naming conflicts
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
     // if no content-length is provided, totalLength get 0
