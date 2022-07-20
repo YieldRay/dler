@@ -1,4 +1,5 @@
 import fetch, { RequestInfo, RequestInit, Response } from 'node-fetch';
+import { AbortSignal } from 'node-fetch/externals';
 import { promises as fs, constants, createWriteStream } from 'fs';
 import { basename, dirname, resolve, normalize } from 'path';
 
@@ -34,7 +35,7 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
         // ! OPTIONS - maxDuration
         if (options.signal) throw new Error('Cannot use both maxDuration and signal');
         const controller = new AbortController();
-        options.signal = controller.signal;
+        options.signal = controller.signal as AbortSignal;
         setTimeout(() => {
             controller.abort();
         }, options.maxDuration);
