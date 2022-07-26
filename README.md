@@ -43,6 +43,7 @@ interface DlerInit extends RequestInit {
     // if this is not provided or a folder name is provided, basename of the requested URL will be used
     maxDuration?: number;
     // we use lowerCamelCase to avoid naming conflicts
+    // using this option, then you cannot set option `signal` as this option is just a wrapper of `signal`
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
     // if no content-length is provided, totalLength get 0
     onReady?: (resp?: Response, saveAs?: string) => void | string;

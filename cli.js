@@ -3,19 +3,20 @@ const download = require('./lib/dler.js');
 const print = process.stdout.write.bind(process.stdout);
 
 const args = process.argv.slice(2);
-if (args.length < 1) {
+if (args.length < 1 || args[0] === '--help') {
     console.log('Usage: dler <url> <saveAs>');
     process.exit(1);
 }
 
 const url = args[0];
 const saveAs = args[args.length - 1] === url ? '' : args[args.length - 1];
-const printToStartOfLine = (s => {
-    let lastLineCount = 0;
+const printToStartOfLine = (() => {
+    let lastLineLength = 0;
     return s => {
         const str = String(s);
-        print(' '.repeat(lastLineCount) + '\r' + str);
-        lastLineCount = str.length;
+        const neededLength = Math.max(lastLineLength - str.length, 0);
+        print('\r' + str + ' '.repeat(neededLength) + '\b'.repeat(neededLength));
+        lastLineLength = str.length;
     };
 })();
 
@@ -31,7 +32,7 @@ if (new RegExp('^https?://').test(url)) {
                 const blocks = Math.round(percentage * scale);
                 const spaces = scale - blocks;
                 const bar = '█'.repeat(blocks) + ' '.repeat(spaces);
-                printToStartOfLine(`[${bar}] ${Math.floor(percentage * 100)}%`);
+                printToStartOfLine(`[${bar}] ${received}/${total} = ${Math.floor(percentage * 100)}%`);
             }
         },
     })

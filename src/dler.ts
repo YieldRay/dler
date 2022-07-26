@@ -11,17 +11,13 @@ interface DlerInit extends RequestInit {
 }
 
 function resolveFilePath(filePath: string | void, url: string): string {
-    let rt: string;
-    if (filePath) {
-        if (filePath.endsWith('/') || filePath.endsWith('\\')) {
-            rt = filePath + basename(new URL(url).pathname);
-        } else {
-            rt = filePath;
-        }
-        rt = normalize(rt);
-    } else {
-        rt = basename(new URL(url).pathname);
-    }
+    let rt = filePath
+        ? // endsWith '/' is mean to download to a folder otherwise just set the file path
+          normalize(filePath.endsWith('/') || filePath.endsWith('\\') ? filePath + basename(new URL(url).pathname) : filePath)
+        : // if filePath is not set, get it from basename of the URL
+          basename(new URL(url).pathname);
+
+    // still cannot get file name
     if (!rt) throw new Error('Unable to determine file name');
     return rt;
 }
@@ -60,7 +56,7 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
         const dirName = dirname(filePath);
         try {
             await fs.access(dirName, constants.R_OK | constants.W_OK);
-        } catch (_) {
+        } catch {
             await fs.mkdir(dirName, { recursive: true });
         }
         const writeFile = createWriteStream(filePath);
