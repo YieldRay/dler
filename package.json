@@ -21,11 +21,11 @@
         "url": "https://github.com/YieldRay/dler/issues"
     },
     "homepage": "https://github.com/YieldRay/dler#readme",
-    "dependencies": {
-        "@types/node-fetch": "^2.6.2",
+    "peerDependencies": {
         "node-fetch": "^2.6.7"
     },
     "devDependencies": {
-        "@types/node": "^16.11.45"
+        "@types/node": "^16.11.46",
+        "@types/node-fetch": "^2.6.2"
     }
 }
