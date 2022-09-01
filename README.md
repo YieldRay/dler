@@ -2,7 +2,7 @@
 
 [![](https://badgen.net/packagephobia/install/dler)](https://packagephobia.com/result?p=dler)
 [![](https://img.shields.io/npm/v/dler)](https://www.npmjs.com/package/dler)  
-A simple download function, which only requires `node-fetch@2`, and is based on Promise.
+A simple download function, which only requires `node-fetch@2` preinstalled, and is based on Promise.
 
 ## Installation
 
@@ -41,6 +41,7 @@ const absolutePath = await download(url [,options]);
 interface DlerInit extends RequestInit {
     filePath?: string;
     // if this is not provided or a folder name is provided, basename of the requested URL will be used
+    // the file will be downloaded to the same working directory related to the calling script
     maxDuration?: number;
     // we use lowerCamelCase to avoid naming conflicts
     // using this option, then you cannot set option `signal` as this option is just a wrapper of `signal`
@@ -50,6 +51,21 @@ interface DlerInit extends RequestInit {
     // callback when start to save file to the disk, if a string is given
     // file will saved as provided name, notice that this name will be the final path directly
 }
+```
+
+use as a cli tool (will log a progress bar in console)
+
+```js
+import downloadInCli from 'dler/cli.js';
+const progressBarWidth = 50; // default value
+await downloadInCli(url, [pathOrFolder[, progressBarWidth]]);
+```
+
+use as a global command
+
+```sh
+$ npm i dler -g
+$ dler --help
 ```
 
 ## Example

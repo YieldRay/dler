@@ -1,7 +1,7 @@
 import fetch, { RequestInfo, RequestInit, Response } from 'node-fetch';
 import { AbortSignal } from 'node-fetch/externals';
 import { promises as fs, constants, createWriteStream } from 'fs';
-import { basename, dirname, resolve, normalize } from 'path';
+import { basename, dirname, resolve, normalize, isAbsolute } from 'path';
 
 interface DlerInit extends RequestInit {
     filePath?: string;
@@ -19,6 +19,7 @@ function resolveFilePath(filePath: string | void, url: string): string {
 
     // still cannot get file name
     if (!rt) throw new Error('Unable to determine file name');
+    isAbsolute(rt) ? rt : normalize(resolve() + '/' + rt);
     return rt;
 }
 
@@ -29,7 +30,7 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
     let { filePath } = options;
     if (options.maxDuration && options.maxDuration > 0) {
         // ! OPTIONS - maxDuration
-        if (options.signal) throw new Error('Cannot use both maxDuration and signal');
+        if (options.signal) throw new Error('Cannot set both maxDuration and signal');
         const controller = new AbortController();
         options.signal = controller.signal as AbortSignal;
         setTimeout(() => {

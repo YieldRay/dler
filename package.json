@@ -1,7 +1,7 @@
 {
     "name": "dler",
-    "version": "0.2.6",
-    "description": "A simple download function, which only requires node-fetch@2, and is based on Promise.",
+    "version": "0.2.7",
+    "description": "A simple download function, which only requires node-fetch@2 preinstalled, and is based on Promise.",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
     "bin": {
@@ -25,7 +25,7 @@
         "node-fetch": "^2.6.7"
     },
     "devDependencies": {
-        "@types/node": "^16.11.46",
+        "@types/node": "^16.11.56",
         "@types/node-fetch": "^2.6.2"
     }
 }

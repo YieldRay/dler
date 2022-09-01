@@ -1,4 +1,7 @@
 import download from '../lib/dler.js';
+import downloadInCLI from '../cli.js';
+
+await downloadInCLI('https://api.ip.sb/ip', '../tmp/ip.txt');
 
 const filePath1 = await download('https://api.ip.sb/ip', { filePath: '../tmp/' });
 console.log(filePath1);
