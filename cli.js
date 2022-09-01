@@ -19,13 +19,13 @@ function downloadInCLI(url, saveAs = './', printWidth = 50) {
     return download(url, {
         filePath,
         onProgress: (received, total) => {
-            if (total === 0) {
+            const percentage = received / total;
+            if (total === 0 || percentage > 1) {
                 printToStartOfLine(`[received ${received} bytes] unknown%`);
             } else {
-                const percentage = received / total;
                 const text = `${received}/${total} = ${Math.floor(percentage * 100)}%`;
-                const textWitdh = text.length;
-                const barWidth = printWidth - textWitdh;
+                const textWidth = text.length;
+                const barWidth = printWidth - textWidth;
                 const blocks = Math.round(percentage * barWidth);
                 const spaces = barWidth - blocks;
                 const bar = barWidth > 5 ? '[' + ('█'.repeat(blocks) + ' '.repeat(spaces)) + ']' : '';

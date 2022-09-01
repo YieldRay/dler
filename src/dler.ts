@@ -51,7 +51,7 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
     }
 
     if (response.ok) {
-        let contentLength = response.headers.get('content-length');
+        const contentLength = response.headers.get('content-length') || '';
         const totalLength = contentLength ? parseInt(contentLength, 10) : 0;
         let receivedLength = 0;
         const dirName = dirname(filePath);
