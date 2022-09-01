@@ -1,11 +1,11 @@
 {
     "name": "dler",
-    "version": "0.2.7",
+    "version": "0.2.8",
     "description": "A simple download function, which only requires node-fetch@2 preinstalled, and is based on Promise.",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
     "bin": {
-        "dler": "./cli.js"
+        "dler": "./dler.js"
     },
     "scripts": {
         "build": "npx prettier --write ./src ./test && npx tsc && npx rollup -c",
