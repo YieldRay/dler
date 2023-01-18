@@ -1,6 +1,6 @@
 {
     "name": "dler",
-    "version": "0.2.9",
+    "version": "0.3.0",
     "description": "A simple download function, which only requires node-fetch@2 preinstalled, and is based on Promise.",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
@@ -22,10 +22,10 @@
     },
     "homepage": "https://github.com/YieldRay/dler#readme",
     "peerDependencies": {
-        "node-fetch": "^2.6.7"
+        "node-fetch": "^2.6.8"
     },
     "devDependencies": {
-        "@types/node": "^16.11.56",
+        "@types/node": "^18.11.18",
         "@types/node-fetch": "^2.6.2"
     }
 }

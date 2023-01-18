@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const downloadInCLI = require('./cli.js');
 // parse two params: url, saveAs
 const args = process.argv.slice(2);
 if (args.length <= 0 || args[0] === '--help' || args[0] === '-h') {
@@ -12,7 +13,7 @@ const saveAs = args[args.length - 1] === url ? '' : args[args.length - 1];
 // run cli
 if (new RegExp('^https?://').test(url)) {
     downloadInCLI(url, saveAs)
-        .then(path => console.log(`\nDownloaded to ${path}`))
+        .then(path => console.log(`Downloaded to ${path}`))
         .catch(console.error);
 } else {
     console.log('URL is not valid');

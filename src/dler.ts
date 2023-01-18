@@ -6,6 +6,8 @@ import { basename, dirname, resolve, normalize, isAbsolute } from 'path';
 interface DlerInit extends RequestInit {
     filePath?: string;
     maxDuration?: number;
+    checkOK?: boolean;
+    streamOptions?: Parameters<typeof createWriteStream>[1];
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
     onReady?: (resp?: Response, saveAs?: string) => void | string;
 }
@@ -23,6 +25,15 @@ function resolveFilePath(filePath: string | void, url: string): string {
     return rt;
 }
 
+async function makeSureDir(filePath: string) {
+    const dirName = dirname(filePath);
+    try {
+        await fs.access(dirName, constants.R_OK | constants.W_OK);
+    } catch {
+        await fs.mkdir(dirName, { recursive: true });
+    }
+}
+
 async function download(input: RequestInfo): Promise<string>;
 async function download(input: RequestInfo, init: DlerInit): Promise<string>;
 async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
@@ -37,6 +48,7 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
             controller.abort();
         }, options.maxDuration);
     }
+
     const response = await fetch(input, init);
     filePath = resolveFilePath(filePath, response.url);
 
@@ -50,36 +62,36 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
         }
     }
 
-    if (response.ok) {
-        const contentLength = response.headers.get('content-length') || '';
-        const totalLength = contentLength ? parseInt(contentLength, 10) : 0;
-        let receivedLength = 0;
-        const dirName = dirname(filePath);
-        try {
-            await fs.access(dirName, constants.R_OK | constants.W_OK);
-        } catch {
-            await fs.mkdir(dirName, { recursive: true });
-        }
-        const writeFile = createWriteStream(filePath);
-        response.body.on('data', chunk => {
-            writeFile.write(chunk);
-            if (typeof options.onProgress === 'function') {
-                // ! OPTIONS - onProgress
-                receivedLength += chunk.length;
-                options.onProgress(receivedLength, totalLength);
-            }
-        });
-        await new Promise<void>((rs, rj) => {
-            response.body.on('error', err => rj(err));
-            response.body.on('end', () => {
-                writeFile.end();
-                rs();
-            });
-        });
-        return resolve(filePath);
-    } else {
-        throw new Error(`Unexpected response ${response.statusText}`);
+    // ! OPTIONS - checkOK
+    if (options.checkOK) {
+        if (!response.ok) throw new Error(`Unexpected response ${response.statusText}`);
     }
+
+    const contentLength = response.headers.get('content-length') || '';
+    const totalLength = contentLength ? parseInt(contentLength, 10) : 0;
+    let receivedLength = 0;
+
+    await makeSureDir(filePath); // make sure parent directory exists
+    const writeFile = createWriteStream(filePath, options.streamOptions);
+
+    response.body.on('data', chunk => {
+        writeFile.write(chunk);
+        if (typeof options.onProgress === 'function') {
+            // ! OPTIONS - onProgress
+            receivedLength += chunk.length;
+            options.onProgress(receivedLength, totalLength);
+        }
+    });
+
+    await new Promise<void>((rs, rj) => {
+        response.body.on('error', err => rj(err));
+        response.body.on('end', () => {
+            writeFile.end();
+            rs();
+        });
+    });
+
+    return resolve(filePath);
 }
 
 export default download;

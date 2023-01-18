@@ -1,5 +1,4 @@
 const download = require('./lib/dler.js');
-const path = require('path');
 
 // utils
 const print = process.stdout.write.bind(process.stdout);
@@ -14,9 +13,8 @@ const printToStartOfLine = (() => {
 })();
 
 // export a function that allow other program to use
-function downloadInCLI(url, saveAs = './', printWidth = 50) {
-    const filePath = path.isAbsolute(saveAs) ? saveAs : path.normalize(path.resolve() + '/' + saveAs);
-    return download(url, {
+async function downloadInCLI(url, filePath, printWidth = 50) {
+    const saved = await download(url, {
         filePath,
         onProgress: (received, total) => {
             const percentage = received / total;
@@ -33,5 +31,8 @@ function downloadInCLI(url, saveAs = './', printWidth = 50) {
             }
         },
     });
+    print('\n');
+    return saved;
 }
+
 module.exports = downloadInCLI;

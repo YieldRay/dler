@@ -17,15 +17,14 @@ const filePath3 = await download('https://api.ip.sb/ip', {
 });
 console.log(filePath3);
 
-download('https://i.pximg.net/img-original/img/2013/07/27/00/32/38/37339355_p0.jpg'.replace('i.pximg.net', 'pximg.deno.dev'), {
+download('https://i.pximg.net/img-original/img/2013/07/27/00/32/38/37339355_p0.jpg'.replace('i.pximg.net', 'i.pixiv.re'), {
     headers: {
         Referer: 'https://www.pixiv.net/',
         'User-Agent': 'PixivIOSApp/6.7.1 (iOS 10.3.1; iPhone8,1)',
     },
     filePath: '../tmp/',
     onProgress: (receivedLength, totalLength) => {
-        console.log((100 * (receivedLength / totalLength)).toFixed(2) + '%');
-        console.log(`${receivedLength} / ${totalLength}`);
+        console.log(`${receivedLength} / ${totalLength}  (${(100 * (receivedLength / totalLength)).toFixed(2)}%)`);
     },
     onReady: (resp, saveAs) => console.log(`Downloading ${resp.url} to ${saveAs}`),
     maxDuration: 2000,

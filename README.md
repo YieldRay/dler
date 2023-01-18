@@ -43,10 +43,15 @@ interface DlerInit extends RequestInit {
     // if this is not provided or a folder name is provided, basename of the requested URL will be used
     // the file will be downloaded to the same working directory related to the calling script
     maxDuration?: number;
-    // we use lowerCamelCase to avoid naming conflicts
-    // using this option, then you cannot set option `signal` as this option is just a wrapper of `signal`
+    // we use lowerCamelCase to avoid naming conflicts with `RequestInit`
+    // using this option, you cannot set option `signal` as this option is just a wrapper of `signal`
+    checkOK?: boolean;
+    // check `response.ok` before writing to file
+    // if is not ok, an error will be thrown
+    streamOptions?: Parameters<typeof createWriteStream>[1];
+    // the options object for `createWriteStream()` function, if needed
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
-    // if no content-length is provided, totalLength get 0
+    // if `content-length` is not provided, `totalLength` will get `0`
     onReady?: (resp?: Response, saveAs?: string) => void | string;
     // callback when start to save file to the disk, if a string is given
     // file will saved as provided name, notice that this name will be the final path directly
