@@ -13,8 +13,12 @@ const printToStartOfLine = (() => {
 })();
 
 // export a function that allow other program to use
-async function downloadInCLI(url, filePath, printWidth = 50) {
+async function downloadInCLI(url, options, printWidth = 50) {
+    const opt = typeof options === 'object' ? options : {};
+    const filePath = typeof options === 'string' ? options : options.filePath;
+
     const saved = await download(url, {
+        ...opt,
         filePath,
         onProgress: (received, total) => {
             const percentage = received / total;

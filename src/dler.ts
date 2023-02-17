@@ -15,14 +15,14 @@ interface DlerInit extends RequestInit {
 }
 
 const endsWithSep = (s: string) => s.endsWith(SEP_POSIX) || s.endsWith(SEP_WIN32);
-const nameFromURL = (u: string) => new URL(u).pathname.slice(1);
+const urlBasename = (u: string) => basename(new URL(u).pathname);
 
 function resolveFilePath(filePath: string | undefined, url: string, contentType?: string | null): string {
     let rt = filePath
         ? // endsWith SEP mean to download to a folder, otherwise just set the file path
-          normalize(endsWithSep(filePath) ? join(filePath, nameFromURL(url)) : filePath)
+          normalize(endsWithSep(filePath) ? join(filePath, urlBasename(url)) : filePath)
         : // if filePath is not set, get it from basename of the URL
-          nameFromURL(url);
+          urlBasename(url);
 
     // still cannot get file name
     if (!rt || endsWithSep(rt)) {
@@ -38,16 +38,17 @@ async function makeSureDir(filePath: string) {
     const dirName = dirname(filePath);
     try {
         await fs.access(dirName, constants.R_OK | constants.W_OK);
-    } catch {
+    } catch (_) {
         await fs.mkdir(dirName, { recursive: true });
     }
 }
 
 async function download(input: RequestInfo): Promise<string>;
+async function download(input: RequestInfo, filePath: string): Promise<string>;
 async function download(input: RequestInfo, init: DlerInit): Promise<string>;
-async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
-    const options = init || {};
-    let { filePath } = options;
+async function download(input: RequestInfo, init?: DlerInit | string): Promise<string> {
+    const options = typeof init === 'object' ? init : {};
+    let filePath = typeof init === 'string' ? init : options.filePath;
     if (options.maxDuration && options.maxDuration > 0) {
         // ! OPTIONS - maxDuration
         if (options.signal) throw new Error('Cannot set both maxDuration and signal');
@@ -58,7 +59,7 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
         }, options.maxDuration);
     }
 
-    const response = await fetch(input, init);
+    const response = await fetch(input, options);
 
     filePath = resolveFilePath(filePath, response.url, response.headers.get('content-type'));
 

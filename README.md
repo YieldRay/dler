@@ -15,28 +15,39 @@ $ npm install dler
 ```js
 import download from 'dler';
 // or
-const download = require("dler");
+const download = require('dler');
+```
 
+```js
 const url = 'https://api.ip.sb/ip';
-const options = {
-    filePath: './ipinfo.txt',
-    // or filePath: 'dirname/' for saving as ./dirname/ip
+
+// simple
+download(url, './ipinfo.txt');
+
+// auto detect file name
+download(url);
+download(url, 'dirname/');
+
+// with options
+download(url, {
+    filePath,
     onProgress: (receivedLength, totalLength) => {
         if (totalLength) console.log((100 * (receivedLength / totalLength)).toFixed(2) + '%');
     },
     onReady: (resp, saveAs) => console.log(`Downloading ${resp.url} to ${saveAs}`),
     /* other options in RequestInit */
-};
-
-
-download(url[, options]).then(path => {
-    console.log(`File saved to ${path}`);
 });
+```
 
+```js
+// use promise
+download(url [,options]).then(path => console.log(`File saved to ${path}`));
 
-// or use async/await
+// use async/await
 const absolutePath = await download(url [,options]);
+```
 
+```ts
 // options should fit DlerInit
 interface DlerInit extends RequestInit {
     filePath?: string;
@@ -63,7 +74,7 @@ use as a cli tool (will log a progress bar in console)
 ```js
 import downloadInCli from 'dler/cli.js';
 const progressBarWidth = 50; // default value
-await downloadInCli(url, [pathOrFolder[, progressBarWidth]]);
+await downloadInCli(url, [options[, progressBarWidth]]);
 ```
 
 use as a global command

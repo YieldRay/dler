@@ -1,6 +1,6 @@
 {
     "name": "dler",
-    "version": "0.3.1",
+    "version": "0.3.2",
     "description": "A simple download function, which only requires node-fetch@2 preinstalled, and is based on Promise.",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
@@ -16,6 +16,9 @@
         "type": "git",
         "url": "git+https://github.com/YieldRay/dler.git"
     },
+    "keywords": [
+        "download"
+    ],
     "author": "YieldRay",
     "license": "ISC",
     "bugs": {
