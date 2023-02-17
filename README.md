@@ -22,7 +22,7 @@ const options = {
     filePath: './ipinfo.txt',
     // or filePath: 'dirname/' for saving as ./dirname/ip
     onProgress: (receivedLength, totalLength) => {
-        console.log((100 * (receivedLength / totalLength)).toFixed(2) + '%');
+        if (totalLength) console.log((100 * (receivedLength / totalLength)).toFixed(2) + '%');
     },
     onReady: (resp, saveAs) => console.log(`Downloading ${resp.url} to ${saveAs}`),
     /* other options in RequestInit */

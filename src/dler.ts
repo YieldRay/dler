@@ -1,7 +1,9 @@
 import fetch, { RequestInfo, RequestInit, Response } from 'node-fetch';
 import { AbortSignal } from 'node-fetch/externals';
 import { promises as fs, constants, createWriteStream } from 'fs';
-import { basename, dirname, resolve, normalize, isAbsolute } from 'path';
+import { basename, dirname, resolve, join, normalize, isAbsolute } from 'path';
+import { sep as SEP_POSIX } from 'path/posix';
+import { sep as SEP_WIN32 } from 'path/win32';
 
 interface DlerInit extends RequestInit {
     filePath?: string;
@@ -12,17 +14,24 @@ interface DlerInit extends RequestInit {
     onReady?: (resp?: Response, saveAs?: string) => void | string;
 }
 
-function resolveFilePath(filePath: string | void, url: string): string {
+const endsWithSep = (s: string) => s.endsWith(SEP_POSIX) || s.endsWith(SEP_WIN32);
+const nameFromURL = (u: string) => new URL(u).pathname.slice(1);
+
+function resolveFilePath(filePath: string | undefined, url: string, contentType?: string | null): string {
     let rt = filePath
-        ? // endsWith '/' is mean to download to a folder otherwise just set the file path
-          normalize(filePath.endsWith('/') || filePath.endsWith('\\') ? filePath + basename(new URL(url).pathname) : filePath)
+        ? // endsWith SEP mean to download to a folder, otherwise just set the file path
+          normalize(endsWithSep(filePath) ? join(filePath, nameFromURL(url)) : filePath)
         : // if filePath is not set, get it from basename of the URL
-          basename(new URL(url).pathname);
+          nameFromURL(url);
 
     // still cannot get file name
-    if (!rt) throw new Error('Unable to determine file name');
-    isAbsolute(rt) ? rt : normalize(resolve() + '/' + rt);
-    return rt;
+    if (!rt || endsWithSep(rt)) {
+        // if response is html document, use default name 'index.html'
+        if (contentType && contentType.startsWith('text/html')) rt = join(rt, 'index.html');
+        // throw error
+        else throw new Error(`Unable to determine file name, filePath: '${filePath}' is a directory and url: '${url}' ends with '/' `);
+    }
+    return normalize(isAbsolute(rt) ? rt : join(resolve(), rt));
 }
 
 async function makeSureDir(filePath: string) {
@@ -50,7 +59,8 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
     }
 
     const response = await fetch(input, init);
-    filePath = resolveFilePath(filePath, response.url);
+
+    filePath = resolveFilePath(filePath, response.url, response.headers.get('content-type'));
 
     if (typeof options.onReady === 'function') {
         // ! OPTIONS - onReady
@@ -68,28 +78,31 @@ async function download(input: RequestInfo, init?: DlerInit): Promise<string> {
     }
 
     const contentLength = response.headers.get('content-length') || '';
-    const totalLength = contentLength ? parseInt(contentLength, 10) : 0;
+    const totalLength = contentLength ? Number.parseInt(contentLength, 10) : 0;
     let receivedLength = 0;
 
     await makeSureDir(filePath); // make sure parent directory exists
+
     const writeFile = createWriteStream(filePath, options.streamOptions);
 
-    response.body.on('data', chunk => {
-        writeFile.write(chunk);
-        if (typeof options.onProgress === 'function') {
-            // ! OPTIONS - onProgress
-            receivedLength += chunk.length;
-            options.onProgress(receivedLength, totalLength);
-        }
-    });
-
-    await new Promise<void>((rs, rj) => {
-        response.body.on('error', err => rj(err));
-        response.body.on('end', () => {
-            writeFile.end();
-            rs();
+    if (response.body !== null) {
+        response.body.on('data', chunk => {
+            writeFile.write(chunk);
+            if (typeof options.onProgress === 'function') {
+                // ! OPTIONS - onProgress
+                receivedLength += chunk.length;
+                options.onProgress(receivedLength, totalLength);
+            }
         });
-    });
+
+        await new Promise<void>((rs, rj) => {
+            response.body.on('error', err => rj(err));
+            response.body.on('end', () => {
+                writeFile.end();
+                rs();
+            });
+        });
+    }
 
     return resolve(filePath);
 }

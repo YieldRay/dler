@@ -1,6 +1,6 @@
 {
     "name": "dler",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "description": "A simple download function, which only requires node-fetch@2 preinstalled, and is based on Promise.",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
@@ -8,7 +8,8 @@
         "dler": "./dler.js"
     },
     "scripts": {
-        "build": "npx prettier --write ./src ./test && npx tsc && npx rollup -c",
+        "dev": "rollup -c -w",
+        "build": "npx prettier --write ./src ./test && rollup -c",
         "test": "cd test && node test.mjs"
     },
     "repository": {
@@ -22,10 +23,14 @@
     },
     "homepage": "https://github.com/YieldRay/dler#readme",
     "peerDependencies": {
-        "node-fetch": "^2.6.8"
+        "node-fetch": "^2.6.9"
     },
     "devDependencies": {
-        "@types/node": "^18.11.18",
-        "@types/node-fetch": "^2.6.2"
+        "typescript": "^4.9.5",
+        "tslib": "^2.5.0",
+        "@types/node": "^18.13.0",
+        "@types/node-fetch": "^2.6.2",
+        "@rollup/plugin-typescript": "^11.0.0",
+        "rollup": "^3.15.0"
     }
 }

@@ -3,7 +3,7 @@ import downloadInCLI from '../cli.js';
 
 await downloadInCLI('https://api.ip.sb/ip', '../tmp/ip.txt');
 
-const filePath1 = await download('https://api.ip.sb/ip', { filePath: '../tmp/' });
+const filePath1 = await download('https://example.net', { filePath: '../tmp/' });
 console.log(filePath1);
 
 const filePath2 = await download('https://api.ip.sb/ip', { filePath: '../tmp/ipaddress.txt' });

@@ -3,7 +3,7 @@
         "target": "esnext",
         "moduleResolution": "node",
         "strict": true,
-        "importHelpers": true,
+        "importHelpers": false,
         "declaration": true,
         "removeComments": true,
         "experimentalDecorators": true,

@@ -1,7 +1,10 @@
+import typescript from '@rollup/plugin-typescript';
+
 export default {
-    input: 'lib/dler.js',
+    input: 'src/dler.ts',
     output: {
-        file: 'lib/dler.js',
+        dir: 'lib',
         format: 'cjs',
     },
+    plugins: [typescript()],
 };
