@@ -47,8 +47,13 @@ download(url [,options]).then(path => console.log(`File saved to ${path}`));
 const absolutePath = await download(url [,options]);
 ```
 
+As nodejs's built-in `fetch` is only available in version >= 17 and the LTS version (node18) is not widely used,  
+the lightweight replacement `node-fetch@2` is required to cover most the node versions,  
+as a result, the (`fetch` related) types listed below is not built-in type but from `node-fetch@2`
+
 ```ts
 // options should fit DlerInit
+// default boolean options, if unset, will be `false`
 interface DlerInit extends RequestInit {
     filePath?: string;
     // if this is not provided or a folder name is provided, basename of the requested URL will be used
@@ -60,11 +65,11 @@ interface DlerInit extends RequestInit {
     // check `response.ok` before writing to file
     // if is not ok, an error will be thrown
     attachmentFirst?: boolean;
-    // use attachment field specified in Content-Disposition first
+    // use attachment field specified in `Content-Disposition` first, if exists
     streamOptions?: Parameters<typeof createWriteStream>[1];
     // the options object for `createWriteStream()` function, if needed
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
-    // if `content-length` is not provided, `totalLength` will get `0`
+    // if `Content-Length` is not provided, `totalLength` will get `0`
     onReady?: (resp?: Response, saveAs?: string) => void | string;
     // callback when start to save file to the disk, if a string is given
     // file will saved as provided name, notice that this name will be the final path directly

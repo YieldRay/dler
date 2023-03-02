@@ -24,14 +24,14 @@ function resolveFilePath(filePath: string | undefined, url: string, headers: Hea
 
     if (attachment && attachmentFirst) {
         // attachment is set
-        // if filePath is unset, just use attachment
+        // if filePath is not set, just use attachment
         if (!filePath) rt = attachment;
         // if filePath is a directory, append attachment to it
         else rt = endsWithSep(filePath) ? join(filePath, attachment) : attachment;
     } else {
-        // attachment is unset
+        // attachment is not set
         rt = filePath
-            ? // endsWith SEP mean to download to a folder, otherwise just set the file path
+            ? // endsWith SEP means to download to a folder, otherwise just set the file path
               normalize(endsWithSep(filePath) ? join(filePath, urlBasename(url)) : filePath)
             : // if filePath is not set, get it from basename of the URL
               urlBasename(url);
