@@ -1,8 +1,6 @@
-import { download, downloadInCLI } from '../lib/dler.js';
+import { download } from '../lib/dler.js';
 
 async function test() {
-    await downloadInCLI('https://api.ip.sb/ip', './tmp/ip.txt');
-
     const filePath1 = await download('https://example.net', './tmp/');
     console.log(filePath1);
 

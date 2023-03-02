@@ -1,4 +1,4 @@
-import fetch, { RequestInfo, RequestInit, Response, Headers } from 'node-fetch';
+import fetch, { RequestInfo, RequestInit, Response, Headers, Body } from 'node-fetch';
 import { AbortSignal } from 'node-fetch/externals';
 import { promises as fs, constants, createWriteStream, WriteStream, ReadStream } from 'fs';
 import { basename, dirname, resolve, join, normalize, isAbsolute } from 'path';
@@ -13,6 +13,7 @@ interface DlerInit extends RequestInit {
     streamOptions?: Parameters<typeof createWriteStream>[1];
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
     onReady?: (resp?: Response, saveAs?: string) => void | string;
+    bodyConvertor?: (body: ReadStream) => ReadStream;
 }
 
 const endsWithSep = (s: string) => s.endsWith(SEP_POSIX) || s.endsWith(SEP_WIN32);
@@ -76,7 +77,7 @@ function readAttatchment(headers: Headers): string {
 function pipe(rs: ReadStream, ws: WriteStream, totalLength: number, onProgress?: (receivedLength?: number, totalLength?: number) => void) {
     return new Promise<void>((resolve, reject) => {
         let receivedLength = 0;
-        
+
         ws.on('error', reject);
         rs.on('data', chunk => {
             ws.write(chunk);
@@ -133,8 +134,13 @@ async function downloadFromFetch(fetcher: typeof fetch, input: RequestInfo, init
     const writeFile = createWriteStream(filePath, options.streamOptions);
 
     if (response.body !== null) {
+        // ! OPTIONS - bodyConvertor
+        const body =
+            typeof options.bodyConvertor === 'function'
+                ? options.bodyConvertor(response.body as ReadStream)
+                : (response.body as ReadStream);
         // ! OPTIONS - onProgress
-        await pipe(response.body as ReadStream, writeFile, totalLength, options.onProgress);
+        await pipe(body, writeFile, totalLength, options.onProgress);
     }
 
     return resolve(filePath);
