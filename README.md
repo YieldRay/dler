@@ -13,9 +13,9 @@ $ npm install dler
 ## Usage
 
 ```js
-import download from 'dler';
+import { download } from 'dler';
 // or
-const download = require('dler');
+const { download } = require('dler');
 ```
 
 ```js
@@ -59,6 +59,8 @@ interface DlerInit extends RequestInit {
     checkOK?: boolean;
     // check `response.ok` before writing to file
     // if is not ok, an error will be thrown
+    attachmentFirst?: boolean;
+    // use attachment field specified in Content-Disposition first
     streamOptions?: Parameters<typeof createWriteStream>[1];
     // the options object for `createWriteStream()` function, if needed
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
@@ -72,9 +74,9 @@ interface DlerInit extends RequestInit {
 use as a cli tool (will log a progress bar in console)
 
 ```js
-import downloadInCli from 'dler/cli.js';
+import { downloadInClI } from 'dler';
 const progressBarWidth = 50; // default value
-await downloadInCli(url, [options[, progressBarWidth]]);
+await downloadInClI(url, [options[, progressBarWidth]]);
 ```
 
 use as a global command
