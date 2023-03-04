@@ -1,4 +1,4 @@
-import fetch, { RequestInfo, RequestInit, Response, Headers, Body } from 'node-fetch';
+import fetch, { RequestInfo, RequestInit, Response, Headers } from 'node-fetch';
 import { AbortSignal } from 'node-fetch/externals';
 import { promises as fs, constants, createWriteStream, WriteStream, ReadStream } from 'fs';
 import { basename, dirname, resolve, join, normalize, isAbsolute } from 'path';
@@ -8,8 +8,7 @@ import { sep as SEP_WIN32 } from 'path/win32';
 interface DlerInit extends RequestInit {
     filePath?: string;
     maxDuration?: number;
-    checkOK?: boolean;
-    attachmentFirst?: boolean;
+    uncheckOK?: boolean;
     streamOptions?: Parameters<typeof createWriteStream>[1];
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
     onReady?: (resp?: Response, saveAs?: string) => void | string;
@@ -19,32 +18,30 @@ interface DlerInit extends RequestInit {
 const endsWithSep = (s: string) => s.endsWith(SEP_POSIX) || s.endsWith(SEP_WIN32);
 const urlBasename = (u: string) => basename(new URL(u).pathname);
 
-function resolveFilePath(filePath: string | undefined, url: string, headers: Headers, attachmentFirst: boolean): string {
+function resolveFilePath(filePath: string | undefined, url: string, headers: Headers): string {
     let rt: string;
     const attachment = readAttatchment(headers);
 
-    if (attachment && attachmentFirst) {
-        // attachment is set
-        // if filePath is not set, just use attachment
-        if (!filePath) rt = attachment;
-        // if filePath is a directory, append attachment to it
-        else rt = endsWithSep(filePath) ? join(filePath, attachment) : attachment;
-    } else {
-        // attachment is not set
-        rt = filePath
-            ? // endsWith SEP means to download to a folder, otherwise just set the file path
-              normalize(endsWithSep(filePath) ? join(filePath, urlBasename(url)) : filePath)
-            : // if filePath is not set, get it from basename of the URL
-              urlBasename(url);
-    }
+    rt = filePath
+        ? // filePath is set
+          normalize(
+              endsWithSep(filePath)
+                  ? // is a dir
+                    join(filePath, attachment || urlBasename(url))
+                  : // is a file
+                    filePath,
+          )
+        : // filePath is not set
+          attachment ||
+          // if has `Content-Disposition: attachment; filename="xxx"`, use it
+          // otherwise use url basename
+          urlBasename(url);
 
     // still cannot get file name
     if (!rt || endsWithSep(rt)) {
         const contentType = readContentType(headers);
-        // check attatchment
-        if (attachment) rt = join(rt, attachment);
         // if response is html document, use default name 'index.html'
-        else if (contentType && contentType.startsWith('text/html')) rt = join(rt, 'index.html');
+        if (contentType && contentType.startsWith('text/html')) rt = join(rt, 'index.html');
         // throw error
         else throw new Error(`Unable to determine file name, filePath: '${filePath}' is a directory and url: '${url}' ends with '/' `);
     }
@@ -60,10 +57,12 @@ async function makeSureDir(filePath: string) {
     }
 }
 
+function readContentLength(headers: Headers): string {
+    return headers.get('Content-Length') || '';
+}
+
 function readContentType(headers: Headers): string {
-    const ct = headers.get('Content-Type');
-    if (!ct) return '';
-    return ct;
+    return headers.get('Content-Type') || '';
 }
 
 function readAttatchment(headers: Headers): string {
@@ -79,6 +78,7 @@ function pipe(rs: ReadStream, ws: WriteStream, totalLength: number, onProgress?:
         let receivedLength = 0;
 
         ws.on('error', reject);
+        rs.on('error', reject);
         rs.on('data', chunk => {
             ws.write(chunk);
             if (typeof onProgress === 'function') {
@@ -86,12 +86,20 @@ function pipe(rs: ReadStream, ws: WriteStream, totalLength: number, onProgress?:
                 onProgress(receivedLength, totalLength);
             }
         });
-        rs.on('error', reject);
         rs.on('end', () => {
             ws.end();
             resolve();
         });
     });
+}
+
+/**
+ * A replacement of `AbortSignal.timeout`
+ */
+function timeoutSignal(timeout: number): AbortSignal {
+    const ac = new AbortController();
+    setTimeout(ac.abort, timeout);
+    return ac.signal as AbortSignal;
 }
 
 async function downloadFromFetch(fetcher: typeof fetch, input: RequestInfo, init?: DlerInit | string): Promise<string> {
@@ -100,15 +108,13 @@ async function downloadFromFetch(fetcher: typeof fetch, input: RequestInfo, init
     if (options.maxDuration && options.maxDuration > 0) {
         // ! OPTIONS - maxDuration
         if (options.signal) throw new Error('Cannot set both maxDuration and signal');
-        const controller = new AbortController();
-        options.signal = controller.signal as AbortSignal;
-        options.maxDuration && setTimeout(() => controller.abort(), options.maxDuration);
+        options.signal = timeoutSignal(options.maxDuration);
     }
 
     const response = await fetcher(input, options);
 
     // ! OPTIONS - attachmentFirst
-    filePath = resolveFilePath(filePath, response.url, response.headers, options.attachmentFirst || false);
+    filePath = resolveFilePath(filePath, response.url, response.headers);
 
     if (typeof options.onReady === 'function') {
         // ! OPTIONS - onReady
@@ -120,12 +126,12 @@ async function downloadFromFetch(fetcher: typeof fetch, input: RequestInfo, init
         }
     }
 
-    // ! OPTIONS - checkOK
-    if (options.checkOK) {
+    // ! OPTIONS - uncheckOK
+    if (!options.uncheckOK) {
         if (!response.ok) throw new Error(`Unexpected response ${response.statusText}`);
     }
 
-    const contentLength = response.headers.get('content-length') || '';
+    const contentLength = readContentLength(response.headers);
     const totalLength = contentLength ? Number.parseInt(contentLength, 10) : 0;
 
     await makeSureDir(filePath); // make sure parent directory exists

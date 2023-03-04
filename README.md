@@ -63,11 +63,9 @@ interface DlerInit extends RequestInit {
     maxDuration?: number;
     // we use lowerCamelCase to avoid naming conflicts with `RequestInit`
     // using this option, you cannot set option `signal` as this option is just a wrapper of `signal`
-    checkOK?: boolean;
-    // check `response.ok` before writing to file
-    // if is not ok, an error will be thrown
-    attachmentFirst?: boolean;
-    // use attachment field specified in `Content-Disposition` first, if exists
+    uncheckOK?: boolean;
+    // do not check `response.ok` before writing to file
+    // if is not set, an error will be thrown when response is not ok
     streamOptions?: Parameters<typeof createWriteStream>[1];
     // the options object for `createWriteStream()` function, if needed
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
