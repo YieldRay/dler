@@ -128,7 +128,7 @@ async function downloadFromFetch(fetcher: typeof fetch, input: RequestInfo, init
 
     // ! OPTIONS - uncheckOK
     if (!options.uncheckOK) {
-        if (!response.ok) throw new Error(`Unexpected response ${response.statusText}`);
+        if (!response.ok) throw new Error(`Unexpected response: ${response.status} ${response.statusText}`);
     }
 
     const contentLength = readContentLength(response.headers);

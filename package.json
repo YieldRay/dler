@@ -1,6 +1,6 @@
 {
     "name": "dler",
-    "version": "0.4.3",
+    "version": "0.4.4",
     "description": "A simple download function, which only requires node-fetch@2 preinstalled, and is based on Promise.",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
