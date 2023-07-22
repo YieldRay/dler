@@ -50,33 +50,49 @@ const absolutePath = await download(url [,options]);
 As nodejs's built-in `fetch` is only available in version >= 17 and the LTS version (node18) is not widely used,  
 the lightweight replacement `node-fetch@2` is required to cover most the node versions,  
 as a result, the (`fetch` related) types listed below is not built-in type but from `node-fetch@2`  
-(only need to be carefully handled in typescript)
+(only need to be carefully handled in typescript, and you can customize the fetch function, see below)
 
 ```ts
-// options should fit DlerInit
-// default boolean options, if unset, will be `false`
+/**
+ * options should fit `DlerInit`.
+ * default boolean type options, will be `false` if unset.
+ */
 interface DlerInit extends RequestInit {
+    /**
+     * If not provided or provided as a string with a suffix '/', the file name will be obtained from
+     * the `Content-Disposition` header or the basename of the requested URL.
+     */
     filePath?: string;
-    // if this is not provided or a folder name is provided, basename of the requested URL will be used
-    // the file will be downloaded to the same working directory related to the calling script
-    // suffix with a `/` to download to a directory
+    /**
+     * We use lowerCamelCase to avoid naming conflicts with `RequestInit`.
+     * You cannot use this option with `signal` at the same time, as this option is just a wrapper of `signal`.
+     */
     maxDuration?: number;
-    // we use lowerCamelCase to avoid naming conflicts with `RequestInit`
-    // using this option, you cannot set option `signal` as this option is just a wrapper of `signal`
+    /**
+     * Do not check `response.ok` before writing to file.
+     * If it is not set, an error will be thrown when the response is not ok.
+     */
     uncheckOK?: boolean;
-    // do not check `response.ok` before writing to file
-    // if is not set, an error will be thrown when response is not ok
+    /**
+     * The options object for the `createWriteStream()` function, if needed.
+     */
     streamOptions?: Parameters<typeof createWriteStream>[1];
-    // the options object for `createWriteStream()` function, if needed
+    /**
+     * If `Content-Length` is not provided, `totalLength` will be set to `0`.
+     */
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
-    // if `Content-Length` is not provided, `totalLength` will get `0`
+    /**
+     * Callback when starting to save the file to the disk.
+     * If a string is returned, the file will be downloaded to that path.
+     * This will override the `filePath` option.
+     */
     onReady?: (resp?: Response, saveAs?: string) => void | string;
-    // callback when start to save file to the disk, if a string is given
-    // file will saved as provided name, notice that this name will be the final path directly
-    bodyConvertor?: (body: ReadStream) => ReadStream;
-    // this callback is only needed in `downloadFromFetch` function when you use a custom `fetch` function
-    // in this case the `body` may not `ReadStream` but `ReadableStream` (you need to do force cast for typescript)
-    // with this option, simply pass the built-in `ReadStream.fromWeb()` function can make things work
+    /**
+     * This callback is only needed in the `downloadFromFetch` function when you use a custom `fetch` function.
+     * In this case, the `body` may not be a `ReadStream` but a `ReadableStream` (you need to do a type cast in TypeScript).
+     * With this option, simply passing Node.js's built-in `ReadStream.fromWeb()` function can make things work.
+     */
+    bodyConverter?: (body: ReadStream) => ReadStream;
 }
 ```
 
