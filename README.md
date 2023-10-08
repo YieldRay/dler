@@ -2,7 +2,10 @@
 
 [![](https://badgen.net/packagephobia/install/dler)](https://packagephobia.com/result?p=dler)
 [![](https://img.shields.io/npm/v/dler)](https://www.npmjs.com/package/dler)  
-A simple download function, which only requires `node-fetch@2` preinstalled, and is based on Promise.
+A simple download function with no dependency, based on built-in fetch.
+
+> [!IMPORTANT]  
+> `dler` is ESM only, and as it use the built-in `fetch`, it requires `nodejs>=17.5.0`
 
 ## Installation
 
@@ -14,8 +17,6 @@ $ npm install dler
 
 ```js
 import { download } from 'dler';
-// or
-const { download } = require('dler');
 ```
 
 ```js
@@ -30,7 +31,7 @@ download(url, 'dirname/');
 
 // with options
 download(url, {
-    filePath,
+    filePath: 'dirname/',
     onProgress: (receivedLength, totalLength) => {
         if (totalLength) console.log((100 * (receivedLength / totalLength)).toFixed(2) + '%');
     },
@@ -47,11 +48,6 @@ download(url [,options]).then(path => console.log(`File saved to ${path}`));
 const absolutePath = await download(url [,options]);
 ```
 
-As nodejs's built-in `fetch` is only available in version >= 17 and the LTS version (node18) is not widely used,  
-the lightweight replacement `node-fetch@2` is required to cover most the node versions,  
-as a result, the (`fetch` related) types listed below is not built-in type but from `node-fetch@2`  
-(only need to be carefully handled in typescript, and you can customize the fetch function, see below)
-
 ```ts
 /**
  * options should fit `DlerInit`.
@@ -67,14 +63,9 @@ interface DlerInit extends RequestInit {
      * We use lowerCamelCase to avoid naming conflicts with `RequestInit`.
      * You cannot use this option with `signal` at the same time, as this option is just a wrapper of `signal`.
      */
-    maxDuration?: number;
+    doNotCheckOK?: boolean;
     /**
-     * Do not check `response.ok` before writing to file.
-     * If it is not set, an error will be thrown when the response is not ok.
-     */
-    uncheckOK?: boolean;
-    /**
-     * The options object for the `createWriteStream()` function, if needed.
+     * Options object for the `createWriteStream()` function to create file, if needed.
      */
     streamOptions?: Parameters<typeof createWriteStream>[1];
     /**
@@ -87,21 +78,15 @@ interface DlerInit extends RequestInit {
      * This will override the `filePath` option.
      */
     onReady?: (resp?: Response, saveAs?: string) => void | string;
-    /**
-     * This callback is only needed in the `downloadFromFetch` function when you use a custom `fetch` function.
-     * In this case, the `body` may not be a `ReadStream` but a `ReadableStream` (you need to do a type cast in TypeScript).
-     * With this option, simply passing Node.js's built-in `ReadStream.fromWeb()` function can make things work.
-     */
-    bodyConverter?: (body: ReadStream) => ReadStream;
 }
 ```
 
 use as a cli tool (will log a progress bar in console)
 
 ```js
-import { downloadInClI } from 'dler';
+import { downloadInCLI } from 'dler';
 const progressBarWidth = 50; // default value
-await downloadInClI(url, [options[, progressBarWidth]]);
+await downloadInCLI(url, [options[, progressBarWidth]]);
 ```
 
 use as a global command
@@ -115,20 +100,16 @@ use your own `fetch` function
 
 ```js
 import { downloadFromFetch } from 'dler';
-import { ReadStream } from 'node:fs';
-const path = await downloadFromFetch(fetch, 'https://example.net/test.html', {
-    bodyConvertor: ReadStream.fromWeb,
-    filePath: './',
-});
-```
 
-however you have to cast them to any in typescript (it works fine, don't worry)
+const myFetch: typeof fetch = async (input, init) => {
+    const res = await fetch(input, init);
+    console.log(res); // do something...
+    return res;
+};
 
-```ts
-downloadFromFetch(globalThis.fetch as any, 'https://example.net/test.html', {
-    bodyConvertor: ReadStream.fromWeb as any,
+const path = await downloadFromFetch(myFetch, 'https://example.net/test.html', {
     filePath: './',
-});
+);
 ```
 
 ## Example

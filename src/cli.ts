@@ -1,4 +1,4 @@
-import { download, type DlerInit } from './dler';
+import { download, type DlerInit } from './dler.js';
 
 // utils
 const _print = process.stdout.write.bind(process.stdout);

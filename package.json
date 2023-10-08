@@ -1,16 +1,20 @@
 {
     "name": "dler",
-    "version": "0.5.0",
-    "description": "A simple download function, which only requires node-fetch@2 preinstalled, and is based on Promise.",
+    "type": "module",
+    "version": "0.6.0",
+    "description": "A simple download function with no dependency, based on built-in fetch.",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
     "bin": {
         "dler": "./lib/command.js"
     },
+    "engines": {
+        "node": ">=17.5.0"
+    },
     "scripts": {
         "dev": "tsc -w",
-        "build": "tsc",
-        "test": "node test/test.mjs"
+        "build": "rm -rf lib && tsc",
+        "test": "node test/test.js"
     },
     "repository": {
         "type": "git",
@@ -25,14 +29,9 @@
         "url": "https://github.com/YieldRay/dler/issues"
     },
     "homepage": "https://github.com/YieldRay/dler#readme",
-    "peerDependencies": {
-        "node-fetch": "^2.6.9"
-    },
     "devDependencies": {
-        "@types/node": "^18.17.0",
-        "@types/node-fetch": "^2.6.4",
-        "tslib": "^2.6.0",
-        "typescript": "^5.1.6"
+        "@types/node": "^18.18.4",
+        "typescript": "^5.2.2"
     }
 }
 

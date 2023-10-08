@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { downloadInCLI } from './cli';
+import { downloadInCLI } from './cli.js';
 // parse two params: url, saveAs
 const args = process.argv.slice(2);
 if (args.length <= 0 || args[0] === '--help' || args[0] === '-h') {

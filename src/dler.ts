@@ -1,9 +1,9 @@
-import fetch, { RequestInfo, RequestInit, Response, Headers } from 'node-fetch';
-import { AbortSignal } from 'node-fetch/externals';
 import { promises as fs, constants, createWriteStream, WriteStream, ReadStream } from 'fs';
 import { basename, dirname, resolve, join, normalize, isAbsolute } from 'path';
 import { sep as SEP_POSIX } from 'path/posix';
 import { sep as SEP_WIN32 } from 'path/win32';
+import { ReadableStream } from 'stream/web';
+import type { Readable, Writable } from 'stream';
 
 /**
  * options should fit `DlerInit`.
@@ -19,14 +19,9 @@ interface DlerInit extends RequestInit {
      * We use lowerCamelCase to avoid naming conflicts with `RequestInit`.
      * You cannot use this option with `signal` at the same time, as this option is just a wrapper of `signal`.
      */
-    maxDuration?: number;
+    doNotCheckOK?: boolean;
     /**
-     * Do not check `response.ok` before writing to file.
-     * If it is not set, an error will be thrown when the response is not ok.
-     */
-    uncheckOK?: boolean;
-    /**
-     * The options object for the `createWriteStream()` function, if needed.
+     * Options object for the `createWriteStream()` function to create file, if needed.
      */
     streamOptions?: Parameters<typeof createWriteStream>[1];
     /**
@@ -39,12 +34,6 @@ interface DlerInit extends RequestInit {
      * This will override the `filePath` option.
      */
     onReady?: (resp?: Response, saveAs?: string) => void | string;
-    /**
-     * This callback is only needed in the `downloadFromFetch` function when you use a custom `fetch` function.
-     * In this case, the `body` may not be a `ReadStream` but a `ReadableStream` (you need to do a type cast in TypeScript).
-     * With this option, simply passing Node.js's built-in `ReadStream.fromWeb()` function can make things work.
-     */
-    bodyConverter?: (body: ReadStream) => ReadStream;
 }
 
 const endsWithSep = (s: string) => s.endsWith(SEP_POSIX) || s.endsWith(SEP_WIN32);
@@ -52,26 +41,24 @@ const urlBasename = (u: string) => basename(new URL(u).pathname);
 
 function resolveFilePath(filePath: string | undefined, url: string, headers: Headers): string {
     let rt: string;
-    const attachment = readAttatchment(headers);
+
+    const guessFileNameFromRequest = () => guessFileNameFromHeader(headers) || urlBasename(url);
 
     rt = filePath
         ? // filePath is set
           normalize(
               endsWithSep(filePath)
                   ? // is a dir
-                    join(filePath, attachment || urlBasename(url))
+                    join(filePath, guessFileNameFromRequest())
                   : // is a file
                     filePath,
           )
         : // filePath is not set
-          attachment ||
-          // if has `Content-Disposition: attachment; filename="xxx"`, use it
-          // otherwise use url basename
-          urlBasename(url);
+          guessFileNameFromRequest();
 
     // still cannot get file name
     if (!rt || endsWithSep(rt)) {
-        const contentType = readContentType(headers);
+        const contentType = headers.get('Content-Type') || '';
         // if response is html document, use default name 'index.html'
         if (contentType && contentType.startsWith('text/html')) rt = join(rt, 'index.html');
         // throw error
@@ -89,23 +76,15 @@ async function makeSureDir(filePath: string) {
     }
 }
 
-function readContentLength(headers: Headers): string {
-    return headers.get('Content-Length') || '';
-}
-
-function readContentType(headers: Headers): string {
-    return headers.get('Content-Type') || '';
-}
-
-function readAttatchment(headers: Headers): string {
+function guessFileNameFromHeader(headers: Headers): string {
     const cd = headers.get('Content-Disposition');
     if (!cd) return '';
-    const h = `attachment; filename="`;
-    if (cd.startsWith(h) && cd.endsWith(`"`)) return cd.slice(h.length, -1);
+    const h = `attachment; filename="`; // remove these string
+    if (cd.startsWith(h) && cd.endsWith(`"`)) return basename(cd.slice(h.length, -1));
     return '';
 }
 
-function pipe(rs: ReadStream, ws: WriteStream, totalLength: number, onProgress?: (receivedLength?: number, totalLength?: number) => void) {
+function pipe(rs: Readable, ws: Writable, totalLength: number, onProgress?: (receivedLength?: number, totalLength?: number) => void) {
     return new Promise<void>((resolve, reject) => {
         let receivedLength = 0;
 
@@ -125,23 +104,9 @@ function pipe(rs: ReadStream, ws: WriteStream, totalLength: number, onProgress?:
     });
 }
 
-/**
- * A replacement of `AbortSignal.timeout`
- */
-function timeoutSignal(timeout: number): AbortSignal {
-    const ac = new AbortController();
-    setTimeout(ac.abort.bind(ac), timeout);
-    return ac.signal as AbortSignal;
-}
-
 async function downloadFromFetch(fetcher: typeof fetch, input: RequestInfo, init?: DlerInit | string): Promise<string> {
     const options = typeof init === 'object' ? init : {};
     let filePath = typeof init === 'string' ? init : options.filePath;
-    if (options.maxDuration && options.maxDuration > 0) {
-        // ! OPTIONS - maxDuration
-        if (options.signal) throw new Error('Cannot set both maxDuration and signal');
-        options.signal = timeoutSignal(options.maxDuration);
-    }
 
     const response = await fetcher(input, options);
 
@@ -158,12 +123,12 @@ async function downloadFromFetch(fetcher: typeof fetch, input: RequestInfo, init
         }
     }
 
-    // ! OPTIONS - uncheckOK
-    if (!options.uncheckOK) {
+    // ! OPTIONS - doNotCheckOK
+    if (!options.doNotCheckOK) {
         if (!response.ok) throw new Error(`Unexpected response: ${response.status} ${response.statusText}`);
     }
 
-    const contentLength = readContentLength(response.headers);
+    const contentLength = response.headers.get('Content-Length') || '';
     const totalLength = contentLength ? Number.parseInt(contentLength, 10) : 0;
 
     await makeSureDir(filePath); // make sure parent directory exists
@@ -172,12 +137,9 @@ async function downloadFromFetch(fetcher: typeof fetch, input: RequestInfo, init
     const writeFile = createWriteStream(filePath, options.streamOptions);
 
     if (response.body !== null) {
-        // ! OPTIONS - bodyConvertor
-        const body =
-            typeof options.bodyConverter === 'function'
-                ? options.bodyConverter(response.body as ReadStream)
-                : (response.body as ReadStream);
-        // ! OPTIONS - onProgress
+        let body: Readable;
+        if (response.body instanceof ReadableStream) body = ReadStream.fromWeb(response.body);
+        else body = response.body as any as Readable;
         await pipe(body, writeFile, totalLength, options.onProgress);
     }
 
@@ -192,4 +154,4 @@ function download(input: RequestInfo, init?: DlerInit | string): Promise<string>
 }
 
 export { downloadFromFetch, download, type DlerInit };
-export { downloadInCLI } from './cli';
+export { downloadInCLI } from './cli.js';

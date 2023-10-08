@@ -1,16 +1,12 @@
 {
     "compilerOptions": {
-        "target": "esnext",
-        "module": "CommonJS",
-        "moduleResolution": "node",
+        "target": "ESNext",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "strict": true,
-        "importHelpers": false,
         "declaration": true,
         "removeComments": true,
-        "experimentalDecorators": true,
         "skipLibCheck": true,
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
         "sourceMap": false,
         "outDir": "lib",
         "typeRoots": ["node_modules/@types", "src/types"]
