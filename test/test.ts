@@ -1,6 +1,6 @@
-import { download } from '../lib/dler.js';
+import { download } from '../src/dler';
 
-async function test() {
+(async function () {
     const filePath1 = await download('https://example.net', './tmp/');
     console.log(filePath1);
 
@@ -22,15 +22,13 @@ async function test() {
         },
         filePath: './tmp/',
         onProgress: (receivedLength, totalLength) => {
-            console.log(`${receivedLength} / ${totalLength}  (${(100 * (receivedLength / totalLength)).toFixed(2)}%)`);
+            console.log(`${receivedLength} / ${totalLength}  (${(100 * (receivedLength! / totalLength!)).toFixed(2)}%)`);
         },
         onReady: (resp, saveAs) => console.log(`Downloading ${resp.url} to ${saveAs}`),
-        maxDuration: 2000,
+        signal: AbortSignal.timeout(2000),
     })
         .then(console.info)
         .catch(e => {
             console.error(e);
         });
-}
-
-test();
+})();

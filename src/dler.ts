@@ -16,8 +16,7 @@ interface DlerInit extends RequestInit {
      */
     filePath?: string;
     /**
-     * We use lowerCamelCase to avoid naming conflicts with `RequestInit`.
-     * You cannot use this option with `signal` at the same time, as this option is just a wrapper of `signal`.
+     * By default, we check if http status is ok by checking if response.ok is true
      */
     doNotCheckOK?: boolean;
     /**
@@ -33,18 +32,16 @@ interface DlerInit extends RequestInit {
      * If a string is returned, the file will be downloaded to that path.
      * This will override the `filePath` option.
      */
-    onReady?: (resp?: Response, saveAs?: string) => void | string;
+    onReady?: (resp: Response, saveAs: string) => string | void | Promise<string | void>;
 }
 
 const endsWithSep = (s: string) => s.endsWith(SEP_POSIX) || s.endsWith(SEP_WIN32);
 const urlBasename = (u: string) => basename(new URL(u).pathname);
 
-function resolveFilePath(filePath: string | undefined, url: string, headers: Headers): string {
-    let rt: string;
+function resolveFilePath(filePath: string | undefined, url: string, headers?: Headers): string {
+    const guessFileNameFromRequest = () => guessFileNameFromHeaders(headers) || urlBasename(url);
 
-    const guessFileNameFromRequest = () => guessFileNameFromHeader(headers) || urlBasename(url);
-
-    rt = filePath
+    let rt = filePath
         ? // filePath is set
           normalize(
               endsWithSep(filePath)
@@ -58,7 +55,7 @@ function resolveFilePath(filePath: string | undefined, url: string, headers: Hea
 
     // still cannot get file name
     if (!rt || endsWithSep(rt)) {
-        const contentType = headers.get('Content-Type') || '';
+        const contentType = headers?.get('Content-Type') || '';
         // if response is html document, use default name 'index.html'
         if (contentType && contentType.startsWith('text/html')) rt = join(rt, 'index.html');
         // throw error
@@ -76,7 +73,8 @@ async function makeSureDir(filePath: string) {
     }
 }
 
-function guessFileNameFromHeader(headers: Headers): string {
+function guessFileNameFromHeaders(headers?: Headers): string {
+    if (!headers) return '';
     const cd = headers.get('Content-Disposition');
     if (!cd) return '';
     const h = `attachment; filename="`; // remove these string
@@ -104,18 +102,18 @@ function pipe(rs: Readable, ws: Writable, totalLength: number, onProgress?: (rec
     });
 }
 
-async function downloadFromFetch(fetcher: typeof fetch, input: RequestInfo, init?: DlerInit | string): Promise<string> {
+async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo, init?: DlerInit | string): Promise<string> {
     const options = typeof init === 'object' ? init : {};
     let filePath = typeof init === 'string' ? init : options.filePath;
 
-    const response = await fetcher(input, options);
+    const response = await fetchFunction(input, options);
 
     // ! OPTIONS - attachmentFirst
     filePath = resolveFilePath(filePath, response.url, response.headers);
 
     if (typeof options.onReady === 'function') {
         // ! OPTIONS - onReady
-        const reset = options.onReady(response, filePath);
+        const reset = await options.onReady(response, filePath);
         if (typeof reset === 'string') {
             // ! OPTIONS - onReady - reset file path by given path
             if (reset.endsWith('/') || reset.endsWith('\\') || basename(reset).length === 0) throw new Error('Please set file name');

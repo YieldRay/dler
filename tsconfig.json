@@ -5,7 +5,6 @@
         "moduleResolution": "NodeNext",
         "strict": true,
         "declaration": true,
-        "removeComments": true,
         "skipLibCheck": true,
         "sourceMap": false,
         "outDir": "lib",

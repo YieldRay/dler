@@ -1,7 +1,7 @@
 {
     "name": "dler",
     "type": "module",
-    "version": "0.6.0",
+    "version": "0.6.1",
     "description": "A simple download function with no dependency, based on built-in fetch.",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
@@ -14,7 +14,7 @@
     "scripts": {
         "dev": "tsc -w",
         "build": "rm -rf lib && tsc",
-        "test": "node test/test.js"
+        "test": "tsx test/test.ts"
     },
     "repository": {
         "type": "git",
@@ -24,14 +24,14 @@
         "download"
     ],
     "author": "YieldRay",
-    "license": "ISC",
+    "license": "MIT",
     "bugs": {
         "url": "https://github.com/YieldRay/dler/issues"
     },
     "homepage": "https://github.com/YieldRay/dler#readme",
     "devDependencies": {
-        "@types/node": "^18.18.4",
-        "typescript": "^5.2.2"
+        "@types/node": "^20.10.5",
+        "typescript": "^5.3.3"
     }
 }
 
