@@ -54,6 +54,11 @@ interface DlerInit extends RequestInit {
      * @returns A string representing the file path where the file should be saved, or a void/Promise resolving to such a string or void.
      */
     onReady?: (resp: Response, saveAs: string) => string | void | Promise<string | void>;
+
+    /**
+     * @default 16384
+     */
+    highWaterMark?: number;
 }
 
 const endsWithSep = (s: string) => s.endsWith(SEP_POSIX) || s.endsWith(SEP_WIN32);
@@ -106,8 +111,8 @@ function guessFileNameFromHeaders(headers?: Headers): string {
 function pipe(
     rs: Readable,
     ws: Writable,
-    startLength: number = 0,
-    totalLength: number,
+    startLength: number = 0, // range
+    totalLength: number, // content-length
     onProgress?: (receivedLength?: number, totalLength?: number) => void,
 ) {
     return new Promise<void>((resolve, reject) => {
@@ -119,7 +124,7 @@ function pipe(
             ws.write(chunk);
             if (typeof onProgress === 'function') {
                 receivedLength += chunk.length;
-                onProgress(receivedLength, totalLength);
+                onProgress(receivedLength, startLength + totalLength);
             }
         });
         rs.on('end', () => {
@@ -160,6 +165,12 @@ async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo
           // by file size
           (await getRegularFileSize(filePath!))
         : 0;
+
+    /** https://nodejs.org/api/stream.html#writablewritablehighwatermark */
+    const highWaterMark = options.highWaterMark ?? 16384;
+
+    if (start > 0) start = Math.max(0, start - highWaterMark);
+
     if (options.tryResumption && start > 0) {
         request.headers.set('Range', `bytes=${start}-`);
     }
@@ -188,9 +199,12 @@ async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo
     // parent dir may not exist when start is 0
     if (start === 0) await makeSureParentDirExists(filePath);
 
+    /** https://nodejs.org/api/fs.html#fscreatewritestreampath-options */
     const writeFile = createWriteStream(filePath, {
         /** https://nodejs.org/api/fs.html#file-system-flags */
-        flags: start > 0 && response.status === 206 ? 'a' : 'w',
+        flags: start > 0 && response.status === 206 ? 'r+' : 'w',
+        start,
+        highWaterMark,
     });
 
     if (response.body !== null) {
