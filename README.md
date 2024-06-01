@@ -37,6 +37,10 @@ download(url, {
     },
     onReady: (resp, saveAs) => console.log(`Downloading ${resp.url} to ${saveAs}`),
     /* other options in RequestInit */
+    headers: {
+        Authorization: 'Bearer xxx',
+    },
+    signal: AbortSignal.timeout(1000),
 });
 ```
 
@@ -50,34 +54,54 @@ const absolutePath = await download(url [,options]);
 
 ```ts
 /**
- * options should fit `DlerInit`.
- * default boolean type options, will be `false` if unset.
+ * Interface representing the initialization options for the downloader.
+ * Extends the `RequestInit` interface.
+ *
+ * Boolean options default to `false` if not specified.
  */
 interface DlerInit extends RequestInit {
     /**
-     * If not provided or provided as a string with a suffix '/', the file name will be obtained from
+     * Optional file path where the downloaded file will be saved.
+     * If not provided or if provided as a string ending with '/', the file name will be derived from
      * the `Content-Disposition` header or the basename of the requested URL.
      */
     filePath?: string;
+
     /**
-     * We use lowerCamelCase to avoid naming conflicts with `RequestInit`.
-     * You cannot use this option with `signal` at the same time, as this option is just a wrapper of `signal`.
+     * Flag to bypass the default check for HTTP status.
+     * By default, the response is considered OK if `response.ok` is true.
+     * Set this to `true` to disable this check.
      */
     doNotCheckOK?: boolean;
+
     /**
-     * Options object for the `createWriteStream()` function to create file, if needed.
+     * Flag to enable resuming the download if the file already exists.
+     * By default, resumption is not attempted.
+     * Set this to `true` to enable download resumption.
+     * By default, resumption commences at the file size, which may not be desirable.
+     * Specify a number to reset the starting range.
      */
-    streamOptions?: Parameters<typeof createWriteStream>[1];
+    tryResumption?: boolean | number;
+
     /**
+     * Callback function for monitoring download progress.
      * If `Content-Length` is not provided, `totalLength` will be set to `0`.
+     *
+     * @param receivedLength - The number of bytes received so far.
+     * @param totalLength - The total number of bytes to be received.
      */
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
+
     /**
-     * Callback when starting to save the file to the disk.
-     * If a string is returned, the file will be downloaded to that path.
-     * This will override the `filePath` option.
+     * Callback function invoked when the file is ready to be saved to disk.
+     * If a string is returned, the file will be saved to the specified path.
+     * This path overrides the `filePath` option.
+     *
+     * @param resp - The response object from the fetch request.
+     * @param saveAs - Suggested file path for saving the file.
+     * @returns A string representing the file path where the file should be saved, or a void/Promise resolving to such a string or void.
      */
-    onReady?: (resp?: Response, saveAs?: string) => void | string;
+    onReady?: (resp: Response, saveAs: string) => string | void | Promise<string | void>;
 }
 ```
 

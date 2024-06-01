@@ -1,4 +1,4 @@
-import { promises as fs, constants, createWriteStream, WriteStream, ReadStream } from 'fs';
+import { promises as fs, constants, createWriteStream, ReadStream, PathLike } from 'fs';
 import { basename, dirname, resolve, join, normalize, isAbsolute } from 'path';
 import { sep as SEP_POSIX } from 'path/posix';
 import { sep as SEP_WIN32 } from 'path/win32';
@@ -6,31 +6,52 @@ import { ReadableStream } from 'stream/web';
 import type { Readable, Writable } from 'stream';
 
 /**
- * options should fit `DlerInit`.
- * default boolean type options, will be `false` if unset.
+ * Interface representing the initialization options for the downloader.
+ * Extends the `RequestInit` interface.
+ *
+ * Boolean options default to `false` if not specified.
  */
 interface DlerInit extends RequestInit {
     /**
-     * If not provided or provided as a string with a suffix '/', the file name will be obtained from
+     * Optional file path where the downloaded file will be saved.
+     * If not provided or if provided as a string ending with '/', the file name will be derived from
      * the `Content-Disposition` header or the basename of the requested URL.
      */
     filePath?: string;
+
     /**
-     * By default, we check if http status is ok by checking if response.ok is true
+     * Flag to bypass the default check for HTTP status.
+     * By default, the response is considered OK if `response.ok` is true.
+     * Set this to `true` to disable this check.
      */
     doNotCheckOK?: boolean;
+
     /**
-     * Options object for the `createWriteStream()` function to create file, if needed.
+     * Flag to enable resuming the download if the file already exists.
+     * By default, resumption is not attempted.
+     * Set this to `true` to enable download resumption.
+     * By default, resumption commences at the file size, which may not be desirable.
+     * Specify a number to reset the starting range.
      */
-    streamOptions?: Parameters<typeof createWriteStream>[1];
+    tryResumption?: boolean | number;
+
     /**
+     * Callback function for monitoring download progress.
      * If `Content-Length` is not provided, `totalLength` will be set to `0`.
+     *
+     * @param receivedLength - The number of bytes received so far.
+     * @param totalLength - The total number of bytes to be received.
      */
     onProgress?: (receivedLength?: number, totalLength?: number) => void;
+
     /**
-     * Callback when starting to save the file to the disk.
-     * If a string is returned, the file will be downloaded to that path.
-     * This will override the `filePath` option.
+     * Callback function invoked when the file is ready to be saved to disk.
+     * If a string is returned, the file will be saved to the specified path.
+     * This path overrides the `filePath` option.
+     *
+     * @param resp - The response object from the fetch request.
+     * @param saveAs - Suggested file path for saving the file.
+     * @returns A string representing the file path where the file should be saved, or a void/Promise resolving to such a string or void.
      */
     onReady?: (resp: Response, saveAs: string) => string | void | Promise<string | void>;
 }
@@ -59,12 +80,12 @@ function resolveFilePath(filePath: string | undefined, url: string, headers?: He
         // if response is html document, use default name 'index.html'
         if (contentType && contentType.startsWith('text/html')) rt = join(rt, 'index.html');
         // throw error
-        else throw new Error(`Unable to determine file name, filePath: '${filePath}' is a directory and url: '${url}' ends with '/' `);
+        else throw new Error(`Unable to determine file name, filePath: '${filePath}' is a directory and url: '${url}' ends with '/'`);
     }
     return normalize(isAbsolute(rt) ? rt : join(resolve(), rt));
 }
 
-async function makeSureDir(filePath: string) {
+async function makeSureParentDirExists(filePath: string) {
     const dirName = dirname(filePath);
     try {
         await fs.access(dirName, constants.R_OK | constants.W_OK);
@@ -82,9 +103,15 @@ function guessFileNameFromHeaders(headers?: Headers): string {
     return '';
 }
 
-function pipe(rs: Readable, ws: Writable, totalLength: number, onProgress?: (receivedLength?: number, totalLength?: number) => void) {
+function pipe(
+    rs: Readable,
+    ws: Writable,
+    startLength: number = 0,
+    totalLength: number,
+    onProgress?: (receivedLength?: number, totalLength?: number) => void,
+) {
     return new Promise<void>((resolve, reject) => {
-        let receivedLength = 0;
+        let receivedLength = startLength;
 
         ws.on('error', reject);
         rs.on('error', reject);
@@ -102,13 +129,42 @@ function pipe(rs: Readable, ws: Writable, totalLength: number, onProgress?: (rec
     });
 }
 
+async function getRegularFileSize(path: PathLike) {
+    try {
+        const s = await fs.stat(path);
+        if (s.isFile()) {
+            return s.size;
+        } else {
+            return 0;
+        }
+    } catch {
+        return 0;
+    }
+}
+
 async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo, init?: DlerInit | string): Promise<string> {
     const options = typeof init === 'object' ? init : {};
     let filePath = typeof init === 'string' ? init : options.filePath;
 
-    const response = await fetchFunction(input, options);
+    const request = new Request(input, options);
 
-    // ! OPTIONS - attachmentFirst
+    // ! OPTIONS - tryResumption
+    if (options.tryResumption) {
+        // evidently utilizing the response headers is not feasible for now
+        filePath = resolveFilePath(filePath, request.url);
+    }
+
+    // ! OPTIONS - tryResumption
+    let start: number = options.tryResumption
+        ? (typeof options.tryResumption === 'number' ? options.tryResumption : 0) ||
+          // by file size
+          (await getRegularFileSize(filePath!))
+        : 0;
+    if (options.tryResumption && start > 0) {
+        request.headers.set('Range', `bytes=${start}-`);
+    }
+
+    const response = await fetchFunction(request);
     filePath = resolveFilePath(filePath, response.url, response.headers);
 
     if (typeof options.onReady === 'function') {
@@ -129,16 +185,19 @@ async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo
     const contentLength = response.headers.get('Content-Length') || '';
     const totalLength = contentLength ? Number.parseInt(contentLength, 10) : 0;
 
-    await makeSureDir(filePath); // make sure parent directory exists
+    // parent dir may not exist when start is 0
+    if (start === 0) await makeSureParentDirExists(filePath);
 
-    // ! OPTIONS - streamOptions
-    const writeFile = createWriteStream(filePath, options.streamOptions);
+    const writeFile = createWriteStream(filePath, {
+        /** https://nodejs.org/api/fs.html#file-system-flags */
+        flags: start > 0 && response.status === 206 ? 'a' : 'w',
+    });
 
     if (response.body !== null) {
         let body: Readable;
         if (response.body instanceof ReadableStream) body = ReadStream.fromWeb(response.body);
         else body = response.body as any as Readable;
-        await pipe(body, writeFile, totalLength, options.onProgress);
+        await pipe(body, writeFile, start, totalLength, options.onProgress);
     }
 
     return resolve(filePath);

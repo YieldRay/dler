@@ -1,12 +1,12 @@
 {
     "name": "dler",
     "type": "module",
-    "version": "0.6.1",
+    "version": "0.7.0",
     "description": "A simple download function with no dependency, based on built-in fetch.",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
     "bin": {
-        "dler": "./lib/command.js"
+        "dler": "./lib/cmd.js"
     },
     "engines": {
         "node": ">=17.5.0"
@@ -30,8 +30,8 @@
     },
     "homepage": "https://github.com/YieldRay/dler#readme",
     "devDependencies": {
-        "@types/node": "^20.10.5",
-        "typescript": "^5.3.3"
+        "@types/node": "^20.13.0",
+        "typescript": "^5.4.5"
     }
 }
 
