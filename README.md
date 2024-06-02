@@ -10,8 +10,9 @@ Smart and easy-to-use `fetch`-based downloader for Node.js compatible runtimes.
 ## Features
 
 -   Automatically detect the download file name.
--   Supports resuming downloads.
 -   Bing your own `fetch`.
+-   Dependency free.
+-   Supports resuming downloads.
 
 ## Limitations
 
