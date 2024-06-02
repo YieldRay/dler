@@ -1,9 +1,9 @@
-import { promises as fs, constants, createWriteStream, ReadStream, PathLike } from 'fs';
-import { basename, dirname, resolve, join, normalize, isAbsolute } from 'path';
-import { sep as SEP_POSIX } from 'path/posix';
-import { sep as SEP_WIN32 } from 'path/win32';
-import { ReadableStream } from 'stream/web';
-import type { Readable, Writable } from 'stream';
+import { promises as fs, constants, createWriteStream, ReadStream, PathLike } from 'node:fs';
+import { basename, dirname, resolve, join, normalize, isAbsolute } from 'node:path';
+import { sep as SEP_POSIX } from 'node:path/posix';
+import { sep as SEP_WIN32 } from 'node:path/win32';
+import { ReadableStream } from 'node:stream/web';
+import type { Readable, Writable } from 'node:stream';
 
 /**
  * Interface representing the initialization options for the downloader.

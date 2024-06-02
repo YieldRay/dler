@@ -4,7 +4,8 @@ import process from 'node:process';
 import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import { dirname } from 'node:path';
+import { sep as SEP_POSIX } from 'node:path/posix';
+import { dirname, basename } from 'node:path';
 import { downloadInCLI } from './cli.js';
 
 // https://nodejs.org/api/util.html#utilparseargsconfig
@@ -20,6 +21,10 @@ const { values, positionals } = parseArgs({
             type: 'boolean',
             short: 'c',
             default: false,
+        },
+        dir: {
+            type: 'string',
+            short: 'd',
         },
         width: {
             type: 'string',
@@ -43,11 +48,20 @@ if (values.help || positionals.length === 0) {
 
 function main() {
     const url = positionals[0];
-    const saveAs = positionals[positionals.length - 1] === url ? '' : positionals[positionals.length - 1];
+    const filePath = positionals[positionals.length - 1] === url ? '' : positionals[positionals.length - 1];
+    const { dir } = values;
 
     // run cli
     if (new RegExp('^https?://').test(url)) {
-        downloadInCLI(url, { filePath: saveAs, tryResumption: values.continue }, Number(values.width) || 50)
+        downloadInCLI(
+            url,
+            {
+                filePath,
+                tryResumption: values.continue,
+                onReady: dir ? (_, saveAs) => dir + SEP_POSIX + basename(saveAs) : undefined,
+            },
+            Number(values.width) || 50,
+        )
             .then(path => console.log(`Downloaded to ${path}`))
             .catch(console.error);
     } else {
@@ -66,9 +80,10 @@ function help() {
     console.error(`${pkg.name} v${pkg.version}
 
 Usage:
-    dler <url> [<saveAs>]    
+    dler <url> [<filePath>]
+
 Options:
-    --continue, c           Enable download resumption
-    --help, c               Print this message`);
-    process.exit(1);
+    --continue, -c          Enable download resumption
+    --dir, -d               Specify the directory to save the file
+    --help, -h              Display this help message`);
 }

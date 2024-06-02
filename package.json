@@ -1,8 +1,8 @@
 {
     "name": "dler",
     "type": "module",
-    "version": "0.7.0",
-    "description": "A simple download function with no dependency, based on built-in fetch.",
+    "version": "0.7.1",
+    "description": "Smart and easy-to-use fetch-based downloader for Node.js compatible runtimes",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
     "bin": {

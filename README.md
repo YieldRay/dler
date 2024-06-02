@@ -2,10 +2,22 @@
 
 [![](https://badgen.net/packagephobia/install/dler)](https://packagephobia.com/result?p=dler)
 [![](https://img.shields.io/npm/v/dler)](https://www.npmjs.com/package/dler)  
-A simple download function with no dependency, based on built-in fetch.
+Smart and easy-to-use `fetch`-based downloader for Node.js compatible runtimes.
 
 > [!IMPORTANT]  
-> `dler` is ESM only, and as it use the built-in `fetch`, it requires `nodejs>=17.5.0`
+> `dler` is ESM only, and since it uses the built-in `fetch`, it requires `nodejs>=17.5.0`.
+
+## Features
+
+-   Automatically detect the download file name.
+-   Supports resuming downloads.
+-   Bing your own `fetch`.
+
+## Limitations
+
+-   Does not support multi-threaded or segmented downloads; only sequential downloads are supported.
+-   Proxy support depends on the runtime's implementation of the `fetch` function. For example, Deno supports [automatic proxy](https://docs.deno.com/runtime/manual/basics/modules/proxies), while Node.js and Bun do not.  
+    However, this can be addressed by customizing the `fetch` function.
 
 ## Installation
 
@@ -17,9 +29,7 @@ $ npm install dler
 
 ```js
 import { download } from 'dler';
-```
 
-```js
 const url = 'https://api.ip.sb/ip';
 
 // simple
@@ -105,7 +115,7 @@ interface DlerInit extends RequestInit {
 }
 ```
 
-use as a cli tool (will log a progress bar in console)
+Use as a CLI tool (will log a progress bar in console).
 
 ```js
 import { downloadInCLI } from 'dler';
@@ -113,14 +123,14 @@ const progressBarWidth = 50; // default value
 await downloadInCLI(url, [options[, progressBarWidth]]);
 ```
 
-use as a global command
+Use as a global command.
 
 ```sh
 $ npm i dler -g
 $ dler --help
 ```
 
-use your own `fetch` function
+Use your own `fetch` function.
 
 ```js
 import { downloadFromFetch } from 'dler';
@@ -133,9 +143,9 @@ const myFetch: typeof fetch = async (input, init) => {
 
 const path = await downloadFromFetch(myFetch, 'https://example.net/test.html', {
     filePath: './',
-);
+});
 ```
 
 ## Example
 
-see `./test`
+See `./test`
