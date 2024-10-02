@@ -1,7 +1,7 @@
 {
     "name": "dler",
     "type": "module",
-    "version": "0.7.1",
+    "version": "0.7.2",
     "description": "Smart and easy-to-use fetch-based downloader for Node.js compatible runtimes",
     "main": "lib/dler.js",
     "types": "lib/dler.d.ts",
@@ -30,8 +30,7 @@
     },
     "homepage": "https://github.com/YieldRay/dler#readme",
     "devDependencies": {
-        "@types/node": "^20.13.0",
-        "typescript": "^5.4.5"
+        "@types/node": "^20.16.10",
+        "typescript": "^5.6.2"
     }
 }
-

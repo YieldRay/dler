@@ -77,7 +77,7 @@ function help() {
     const __dirname = dirname(__filename);
     const pkg = JSON.parse(readFileSync(`${__dirname}/../package.json`, 'utf-8'));
 
-    console.error(`${pkg.name} v${pkg.version}
+    console.log(`${pkg.name} v${pkg.version}
 
 Usage:
     dler <url> [<filePath>]

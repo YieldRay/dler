@@ -131,7 +131,7 @@ $ npm i dler -g
 $ dler --help
 ```
 
-Use your own `fetch` function.
+Bring your own `fetch` function.
 
 ```js
 import { downloadFromFetch } from 'dler';
