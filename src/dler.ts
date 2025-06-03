@@ -1,4 +1,4 @@
-import { promises as fs, constants, createWriteStream, ReadStream, PathLike } from 'node:fs';
+import { promises as fs, constants, createWriteStream, ReadStream, type PathLike } from 'node:fs';
 import { basename, dirname, resolve, join, normalize, isAbsolute } from 'node:path';
 import { sep as SEP_POSIX } from 'node:path/posix';
 import { sep as SEP_WIN32 } from 'node:path/win32';
@@ -65,7 +65,7 @@ const endsWithSep = (s: string) => s.endsWith(SEP_POSIX) || s.endsWith(SEP_WIN32
 const urlBasename = (u: string) => basename(new URL(u).pathname);
 
 function resolveFilePath(filePath: string | undefined, url: string, headers?: Headers): string {
-    const guessFileNameFromRequest = () => guessFileNameFromHeaders(headers) || urlBasename(url);
+    const guessFileNameFromRequest = () => guessFileNameByHeaders(headers) || urlBasename(url);
 
     let rt = filePath
         ? // filePath is set
@@ -99,7 +99,7 @@ async function makeSureParentDirExists(filePath: string) {
     }
 }
 
-function guessFileNameFromHeaders(headers?: Headers): string {
+function guessFileNameByHeaders(headers?: Headers): string {
     if (!headers) return '';
     const cd = headers.get('Content-Disposition');
     if (!cd) return '';
@@ -111,9 +111,9 @@ function guessFileNameFromHeaders(headers?: Headers): string {
 function pipe(
     rs: Readable,
     ws: Writable,
-    startLength: number = 0, // range
+    startLength: number = 0, // for range
     totalLength: number, // content-length
-    onProgress?: (receivedLength?: number, totalLength?: number) => void,
+    onProgress?: (receivedLength: number, totalLength: number) => void,
 ) {
     return new Promise<void>((resolve, reject) => {
         let receivedLength = startLength;
@@ -209,8 +209,11 @@ async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo
 
     if (response.body !== null) {
         let body: Readable;
+        // if the fetch implementation is standard, response.body is a ReadableStream
         if (response.body instanceof ReadableStream) body = ReadStream.fromWeb(response.body);
+        // or if it's not standard, response.body should be a Readable
         else body = response.body as any as Readable;
+        // now body is a node.js stream: Readable
         await pipe(body, writeFile, start, totalLength, options.onProgress);
     }
 
@@ -225,4 +228,4 @@ function download(input: RequestInfo, init?: DlerInit | string): Promise<string>
 }
 
 export { downloadFromFetch, download, type DlerInit };
-export { downloadInCLI } from './cli.js';
+export { downloadInCLI } from './cli.ts';

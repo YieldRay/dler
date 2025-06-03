@@ -6,7 +6,9 @@ import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { sep as SEP_POSIX } from 'node:path/posix';
 import { dirname, basename } from 'node:path';
-import { downloadInCLI } from './cli.js';
+import { downloadInCLI } from './cli.ts';
+
+const DEFAULT_WIDTH = 50;
 
 // https://nodejs.org/api/util.html#utilparseargsconfig
 const { values, positionals } = parseArgs({
@@ -29,6 +31,7 @@ const { values, positionals } = parseArgs({
         width: {
             type: 'string',
             short: 'w',
+            default: String(DEFAULT_WIDTH),
         },
         version: {
             type: 'boolean',
@@ -46,24 +49,23 @@ if (values.help || positionals.length === 0) {
     main();
 }
 
-function main() {
+async function main() {
     const url = positionals[0];
     const filePath = positionals[positionals.length - 1] === url ? '' : positionals[positionals.length - 1];
     const { dir } = values;
 
     // run cli
     if (new RegExp('^https?://').test(url)) {
-        downloadInCLI(
+        const finalPath = await downloadInCLI(
             url,
             {
                 filePath,
                 tryResumption: values.continue,
                 onReady: dir ? (_, saveAs) => dir + SEP_POSIX + basename(saveAs) : undefined,
             },
-            Number(values.width) || 50,
-        )
-            .then(path => console.log(`Downloaded to ${path}`))
-            .catch(console.error);
+            Number(values.width) || DEFAULT_WIDTH,
+        );
+        console.log(`Downloaded to ${finalPath}`);
     } else {
         console.error('URL is not valid');
         process.exit(-1);

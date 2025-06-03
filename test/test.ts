@@ -1,4 +1,4 @@
-import { download } from '../src/dler';
+import { download } from '../src/dler.ts';
 
 (async function () {
     const filePath1 = await download('https://example.net', './tmp/');

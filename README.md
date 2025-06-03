@@ -17,7 +17,7 @@ Smart and easy-to-use `fetch`-based downloader for Node.js compatible runtimes.
 ## Limitations
 
 -   Does not support multi-threaded or segmented downloads; only sequential downloads are supported.
--   Proxy support depends on the runtime's implementation of the `fetch` function. For example, Deno supports [automatic proxy](https://docs.deno.com/runtime/manual/basics/modules/proxies), while Node.js and Bun do not.  
+-   Proxy support depends on the runtime's implementation of the `fetch` function. For example, Deno supports [automatic proxy](https://docs.deno.com/api/deno/fetch), while Node.js and Bun do not.  
     However, this can be addressed by customizing the `fetch` function.
 
 ## Installation
@@ -133,7 +133,7 @@ $ dler --help
 
 Bring your own `fetch` function.
 
-```js
+```ts
 import { downloadFromFetch } from 'dler';
 
 const myFetch: typeof fetch = async (input, init) => {

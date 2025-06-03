@@ -1,14 +1,15 @@
-import { download, type DlerInit } from './dler.js';
+import process from 'node:process';
+import { download, type DlerInit } from './dler.ts';
 
 // utils
-const _print = process.stdout.write.bind(process.stdout);
+const print = process.stdout.write.bind(process.stdout);
 const printToStartOfLine = (() => {
     let lastLineLength = 0;
-    // we could use "\r\u001b[K" but this is for compatible
+    // we could use "\r\u001b[K" but this way is more compatible
     return (s: string) => {
         const str = String(s);
         const neededLength = Math.max(lastLineLength - str.length, 0);
-        _print('\r' + str + ' '.repeat(neededLength) + '\b'.repeat(neededLength));
+        print('\r' + str + ' '.repeat(neededLength) + '\b'.repeat(neededLength));
         lastLineLength = str.length;
     };
 })();
@@ -36,7 +37,7 @@ export async function downloadInCLI(url: string, options: DlerInit | string, pri
             }
         },
     });
-    _print('\n');
+    print('\n');
     return saved;
 }
 
