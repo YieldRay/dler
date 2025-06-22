@@ -15,7 +15,7 @@ interface DlerInit extends RequestInit {
     /**
      * Optional file path where the downloaded file will be saved.
      * If not provided or if provided as a string ending with '/', the file name will be derived from
-     * the `Content-Disposition` header or the basename of the requested URL.
+     * the `Content-Disposition` header or the basename of the final (maybe redirected) requested URL.
      */
     filePath?: string;
 
@@ -59,6 +59,13 @@ interface DlerInit extends RequestInit {
      * @default 16384
      */
     highWaterMark?: number;
+    /**
+     * If set, the downloaded data will be written to this stream instead of a file.
+     * This is useful for cases where you want to handle the stream directly,
+     * such as piping it to another writable stream or processing it in memory.
+     */
+
+    bringYourOwnStream?: Writable;
 }
 
 const endsWithSep = (s: string) => s.endsWith(SEP_POSIX) || s.endsWith(SEP_WIN32);
@@ -134,6 +141,9 @@ function pipe(
     });
 }
 
+/**
+ * Asynchronously retrieves the size of a regular file, never throw and return 0 when error.
+ */
 async function getRegularFileSize(path: PathLike) {
     try {
         const s = await fs.stat(path);
@@ -145,6 +155,51 @@ async function getRegularFileSize(path: PathLike) {
     } catch {
         return 0;
     }
+}
+
+/**
+ * Since only bytes is supported as the unit, we only support byte ranges.
+ * @docs https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Range
+ */
+interface ContentRange {
+    /** start position (zero-indexed & inclusive) of the range.  */
+    start: number;
+    /** end position (zero-indexed & inclusive) of the range.  */
+    end: number;
+    /** The total length of the document (or -1 if unknown). */
+    size: number;
+}
+
+function parseContentRange(contentRange: string): ContentRange | null {
+    // Content-Range: <unit> <range-start>-<range-end>/<size>
+    const match = contentRange.match(/bytes (\d+)-(\d+)\/(\d+)/);
+    if (match) {
+        return {
+            start: Number.parseInt(match[1], 10),
+            end: Number.parseInt(match[2], 10),
+            size: Number.parseInt(match[3], 10),
+        };
+    }
+    // Content-Range: <unit> <range-start>-<range-end>/*
+    const matchStar = contentRange.match(/bytes (\d+)-(\d+)\/\*/);
+    if (matchStar) {
+        return {
+            start: Number.parseInt(matchStar[1], 10),
+            end: Number.parseInt(matchStar[2], 10),
+            size: -1, // unknown total size
+        };
+    }
+    // Content-Range: <unit> */<size>
+    const matchTotal = contentRange.match(/bytes \*\/(\d+)/);
+    if (matchTotal) {
+        return {
+            start: 0,
+            end: -1, // unknown end
+            size: Number.parseInt(matchTotal[1], 10),
+        };
+    }
+    // Invalid Content-Range format
+    return null;
 }
 
 async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo, init?: DlerInit | string): Promise<string> {
@@ -159,12 +214,16 @@ async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo
         filePath = resolveFilePath(filePath, request.url);
     }
 
+    let start = 0;
     // ! OPTIONS - tryResumption
-    let start: number = options.tryResumption
-        ? (typeof options.tryResumption === 'number' ? options.tryResumption : 0) ||
-          // by file size
-          (await getRegularFileSize(filePath!))
-        : 0;
+    if (options.tryResumption && !options.bringYourOwnStream) {
+        // no file operation if bringYourOwnStream is set
+        if (typeof options.tryResumption === 'number') {
+            start = Math.max(0, options.tryResumption);
+        } else {
+            start = await getRegularFileSize(filePath!);
+        }
+    }
 
     /** https://nodejs.org/api/stream.html#writablewritablehighwatermark */
     const highWaterMark = options.highWaterMark ?? 16384;
@@ -183,7 +242,7 @@ async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo
         const reset = await options.onReady(response, filePath);
         if (typeof reset === 'string') {
             // ! OPTIONS - onReady - reset file path by given path
-            if (reset.endsWith('/') || reset.endsWith('\\') || basename(reset).length === 0) throw new Error('Please set file name');
+            if (endsWithSep(reset) || basename(reset).length === 0) throw new Error('Please set file name');
             filePath = reset;
         }
     }
@@ -194,18 +253,35 @@ async function downloadFromFetch(fetchFunction: typeof fetch, input: RequestInfo
     }
 
     const contentLength = response.headers.get('Content-Length') || '';
-    const totalLength = contentLength ? Number.parseInt(contentLength, 10) : 0;
+    const contentLengthNumber = contentLength ? Number.parseInt(contentLength, 10) : 0;
+
+    let totalLength = 0;
+    if (contentLengthNumber) {
+        totalLength = contentLengthNumber;
+    } else if (response.headers.has('Content-Range')) {
+        const contentRange = parseContentRange(response.headers.get('Content-Range')!);
+        if (contentRange && contentRange.size >= 0) {
+            totalLength = contentRange.size;
+        }
+    }
 
     // parent dir may not exist when start is 0
     if (start === 0) await makeSureParentDirExists(filePath);
 
-    /** https://nodejs.org/api/fs.html#fscreatewritestreampath-options */
-    const writeFile = createWriteStream(filePath, {
-        /** https://nodejs.org/api/fs.html#file-system-flags */
-        flags: start > 0 && response.status === 206 ? 'r+' : 'w',
-        start,
-        highWaterMark,
-    });
+    let writeFile: Writable;
+
+    // ! OPTIONS - bringYourOwnStream
+    if (options.bringYourOwnStream) {
+        writeFile = options.bringYourOwnStream;
+    } else {
+        /** https://nodejs.org/api/fs.html#fscreatewritestreampath-options */
+        writeFile = createWriteStream(filePath, {
+            /** https://nodejs.org/api/fs.html#file-system-flags */
+            flags: start > 0 && response.status === 206 ? 'r+' : 'w',
+            start,
+            highWaterMark,
+        });
+    }
 
     if (response.body !== null) {
         let body: Readable;

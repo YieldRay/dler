@@ -74,7 +74,7 @@ interface DlerInit extends RequestInit {
     /**
      * Optional file path where the downloaded file will be saved.
      * If not provided or if provided as a string ending with '/', the file name will be derived from
-     * the `Content-Disposition` header or the basename of the requested URL.
+     * the `Content-Disposition` header or the basename of the final (maybe redirected) requested URL.
      */
     filePath?: string;
 
@@ -145,6 +145,21 @@ const myFetch: typeof fetch = async (input, init) => {
 const path = await downloadFromFetch(myFetch, 'https://example.net/test.html', {
     filePath: './',
 });
+```
+
+Use a ProxyAgent to make requests through a proxy server.
+
+```ts
+import { fetch as undiciFetch, ProxyAgent } from 'undici';
+
+const myFetch = (url, options) => {
+  return undiciFetch(url, {
+    ...options,
+    dispatcher: new ProxyAgent(<your_proxy_url>)
+  })
+}
+
+downloadFromFetch(myFetch, 'https://example.net/test.html')
 ```
 
 ## Example
