@@ -17,8 +17,11 @@ Smart and easy-to-use `fetch`-based downloader for Node.js compatible runtimes.
 ## Limitations
 
 -   Does not support multi-threaded or segmented downloads; only sequential downloads are supported.
--   Proxy support depends on the runtime's implementation of the `fetch` function. For example, Deno supports [automatic proxy](https://docs.deno.com/api/deno/fetch), while Node.js and Bun do not.  
-    However, this can be addressed by customizing the `fetch` function.
+-   Proxy support depends on the runtime's implementation of the `fetch` function.
+    -   Bun and Node.js>=24 ([NODE_USE_ENV_PROXY=1](https://nodejs.org/docs/latest/api/cli.html#node_use_env_proxy1)) support `HTTP_PROXY` and `HTTPS_PROXY`
+    -   Deno supports [automatic proxy](https://docs.deno.com/api/deno/fetch)
+    -   If this is not supported by default, you can address it by customizing the `fetch` function.
+    -   For Node.js<24, you can use the [undici](https://undici.nodejs.org/#/docs/api/ProxyAgent?id=example-proxyagent-with-fetch) library.
 
 ## Installation
 
